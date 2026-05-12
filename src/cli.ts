@@ -128,16 +128,72 @@ program
   });
 
 // ---------------------------------------------------------------------------
-// review — prepare review data and open the local HTML reviewer
+// export-questions (E24)
+// ---------------------------------------------------------------------------
+program
+  .command('export-questions')
+  .description('Read-only export of all 3,466 Firestore questions to local JSONL (E24 IQY-40)')
+  .option('-o, --output <path>', 'Output JSONL path')
+  .option('-a, --anomalies <path>', 'Output path for malformed records')
+  .action(async (opts) => {
+    const { exportQuestions } = await import('./migration/export.js');
+    await exportQuestions({
+      outputPath: opts.output,
+      anomaliesPath: opts.anomalies,
+    });
+  });
+
+// ---------------------------------------------------------------------------
+// enrich (E24 IQY-41 + IQY-42)
+// ---------------------------------------------------------------------------
+program
+  .command('enrich')
+  .description('Enrich existing exported questions with explanation, archetype, tags, qualityRating')
+  .requiredOption('-i, --input <path>', 'Input legacy JSONL (output of export-questions)')
+  .option('-o, --output <path>', 'Output enriched JSONL path')
+  .option('-e, --errors <path>', 'Path for enrichment errors log')
+  .option('-p, --provider <name>', 'Override generator provider: anthropic | deepseek')
+  .action(async (opts) => {
+    const { enrichExistingQuestions } = await import('./migration/enricher.js');
+    await enrichExistingQuestions({
+      inputPath: opts.input,
+      outputPath: opts.output,
+      errorsPath: opts.errors,
+      provider: opts.provider as ChatProviderName | undefined,
+    });
+    console.log(`\n${costLogger.summary()}`);
+  });
+
+// ---------------------------------------------------------------------------
+// dedup-existing (E24 IQY-43) — convenience wrapper for embed + dedup over enriched pool
+// ---------------------------------------------------------------------------
+program
+  .command('dedup-existing')
+  .description('E24 IQY-43: embed enriched pool + run within-pool dedup')
+  .requiredOption('-i, --input <path>', 'Input enriched JSONL (output of enrich)')
+  .option('--embedded-output <path>', 'Embedded JSONL output path')
+  .option('--clusters-output <path>', 'Clusters JSON output path')
+  .action(async (opts) => {
+    const { dedupExistingPool } = await import('./migration/dedup-existing.js');
+    await dedupExistingPool({
+      enrichedInputPath: opts.input,
+      embeddedOutputPath: opts.embeddedOutput,
+      clustersOutputPath: opts.clustersOutput,
+    });
+    console.log(`\n${costLogger.summary()}`);
+  });
+
+// ---------------------------------------------------------------------------
+// review (E24 IQY-44) — open the local HTML reviewer
 // ---------------------------------------------------------------------------
 program
   .command('review')
-  .description('Prepare review data and open the local HTML reviewer for flagged questions')
-  .requiredOption('-i, --input <path>', 'Input JSONL (embedded questions)')
+  .description('E24 IQY-44: prepare review data and open the local HTML reviewer')
+  .requiredOption('-i, --input <path>', 'Input enriched JSONL')
   .option('-c, --clusters <path>', 'Optional dedup clusters JSON for flagging duplicates')
   .option('--no-open', 'Generate review-data.json but do not auto-open browser')
   .action(async (opts) => {
-    const { prepareReview } = await import('./review.js');
+    const { prepareReview } = await import('./migration/review.js');
     await prepareReview({
       enrichedPath: opts.input,
       clustersPath: opts.clusters,
@@ -146,16 +202,16 @@ program
   });
 
 // ---------------------------------------------------------------------------
-// review-finalize — apply browser-exported decisions
+// review-finalize (E24 IQY-44) — apply browser-exported decisions
 // ---------------------------------------------------------------------------
 program
   .command('review-finalize')
   .description('Apply review decisions exported from the browser to produce final JSONL')
-  .requiredOption('-i, --input <path>', 'Input JSONL')
+  .requiredOption('-i, --input <path>', 'Enriched JSONL')
   .requiredOption('-d, --decisions <path>', 'Decisions JSON exported from the HTML reviewer')
   .option('-o, --output <path>', 'Final output JSONL path')
   .action(async (opts) => {
-    const { finalizeReview } = await import('./review.js');
+    const { finalizeReview } = await import('./migration/review.js');
     await finalizeReview({
       enrichedPath: opts.input,
       decisionsPath: opts.decisions,
@@ -257,8 +313,8 @@ program
 // ---------------------------------------------------------------------------
 program
   .command('rewrite-mobile')
-  .description('Find pool entries that exceed the 150/60 mobile UI character budget, AI-rewrite them through the full pipeline (quality → verify → embed; skip dedup), and atomically replace in the default-repertoire pool. Failed rewrites cause both the original and the failed rewrite to be dropped.')
-  .option('-p, --pool <path>', 'Default-repertoire pool path', undefined)
+  .description('Find pool entries that exceed the 150/60 mobile UI character budget, AI-rewrite them through the full pipeline (quality → verify → embed; skip dedup), and atomically replace in the canonical pool. Failed rewrites cause both the original and the failed rewrite to be dropped.')
+  .option('-p, --pool <path>', 'Canonical pool path', undefined)
   .option('--q-max <n>', 'Question text hard cap (chars)', (v) => Number(v), 150)
   .option('--a-max <n>', 'Per-answer hard cap (chars)', (v) => Number(v), 60)
   .option('--provider <name>', 'Provider for the rewrite step (default deepseek)', 'deepseek')
@@ -349,12 +405,12 @@ program
 // ---------------------------------------------------------------------------
 program
   .command('auto-generate')
-  .description('Auto-orchestrated generation: rotates through (category × archetype × provider), runs full pipeline per batch, appends survivors to the default-repertoire pool. Stops at target survivors OR budget cap.')
+  .description('Auto-orchestrated generation: rotates through (category × archetype × provider), runs full pipeline per batch, appends survivors to the canonical pool. Stops at target survivors OR budget cap.')
   .requiredOption('-t, --target <n>', 'Target number of survivors to land in the pool', (v) => Number(v))
   .requiredOption('-b, --budget <usd>', 'Hard cost cap in USD', (v) => Number(v))
   .option('--batch-size <n>', 'Questions per generation batch', (v) => Number(v), 8)
   .option('--max-batches <n>', 'Hard cap on number of batches', (v) => Number(v), 200)
-  .option('-p, --pool <path>', 'Default-repertoire pool JSONL', undefined)
+  .option('-p, --pool <path>', 'Canonical pool JSONL', undefined)
   .option('--categories <list>', 'Comma-separated category list (default: all with active seeds)')
   .option('--archetypes <list>', 'Comma-separated archetype list (default: 10-archetype rotation)')
   .option('--providers <list>', 'Comma-separated provider list (default: all with credentials)')
@@ -404,6 +460,137 @@ program
     console.log(`Survivors: ${summary.totals.questionsSurvived} / ${opts.target}`);
     console.log(`Pool: ${summary.totals.poolSizeStart} → ${summary.totals.poolSizeEnd}`);
     console.log(`Cost: $${summary.totals.totalCost.toFixed(4)}`);
+  });
+
+// ---------------------------------------------------------------------------
+// fill-gaps — targeted gap-filling of underrepresented (provider × archetype) cells
+// ---------------------------------------------------------------------------
+program
+  .command('fill-gaps')
+  .description(
+    'Targeted fill of underrepresented (provider × archetype) cells. Reads ' +
+    'data/provider-archetype-stats.json, identifies cells with fewer than ' +
+    '--target-samples assessed questions, and generates against those cells ' +
+    'in lowest-sample-first order until every reachable cell hits the target. ' +
+    'IGNORES the normal (category × archetype) rotation — use auto-generate for that. ' +
+    'Compatible with --concurrent-batches (no-two-batches-same-provider invariant).',
+  )
+  .option('--target-samples <n>', 'Min questionsAssessed per (provider, model, archetype) cell', (v) => Number(v), 10)
+  .option('--dry-run', 'Print the list of target cells (with current vs needed samples) and exit without spending budget')
+  .option('-b, --budget <usd>', 'Hard cost cap in USD (required unless --dry-run)', (v) => Number(v))
+  .option('--batch-size <n>', 'Questions per generation batch', (v) => Number(v), 6)
+  .option('--max-batches <n>', 'Hard cap on number of batches', (v) => Number(v), 200)
+  .option('-p, --pool <path>', 'Canonical pool JSONL', undefined)
+  .option('--categories <list>', 'Comma-separated category whitelist (default: all with active seeds)')
+  .option('--archetypes <list>', 'Comma-separated archetype list (default: 10-archetype rotation)')
+  .option('--providers <list>', 'Comma-separated provider list (default: all with credentials)')
+  .option('--log-dir <path>', 'Output directory for run logs')
+  .option('--concurrent-batches <n>', 'Run up to N batches in parallel (provider-uniqueness invariant)', (v) => Number(v), 2)
+  .option('--quality-alt-model <model>', 'A/B-test the quality assessor (see auto-generate for details)')
+  .action(async (opts) => {
+    const targetSamples = Number(opts.targetSamples ?? 10);
+    if (!Number.isFinite(targetSamples) || targetSamples < 1) {
+      throw new Error(`--target-samples must be a positive integer (got ${opts.targetSamples})`);
+    }
+
+    // --- dry-run: compute + print target cell list, then exit ----------
+    if (opts.dryRun) {
+      const { loadProviderArchetypeStats, isCellAllowed, cellKey } = await import('./provider-archetype-constraints.js');
+      const { getActiveChatProviders } = await import('./providers/factory.js');
+      const { compatibleCategories } = await import('./archetype-compatibility.js');
+      const { loadSeeds } = await import('./seeds.js');
+
+      const stats = await loadProviderArchetypeStats();
+      const allActive = getActiveChatProviders();
+      const requestedProviders: string[] | undefined = opts.providers
+        ? String(opts.providers).split(',').map((s: string) => s.trim())
+        : undefined;
+      const providers = requestedProviders
+        ? allActive.filter((p) => requestedProviders.includes(p.name))
+        : allActive;
+      const seeds = await loadSeeds();
+      const activeCats = new Set(seeds.filter((s) => s.status === 'active').map((s) => s.category));
+      const archetypesList: Archetype[] = opts.archetypes
+        ? (String(opts.archetypes).split(',').map((s: string) => s.trim()) as Archetype[])
+        : (['cause_effect','comparison','misconception','etymology','estimation','odd_one_out','lateral_connection','process_sequence','vocab_context','strategy'] as Archetype[]);
+
+      interface Target { provider: string; model: string; archetype: Archetype; samples: number; gap: number; blocked: string | null }
+      const targets: Target[] = [];
+      for (const p of providers) {
+        const model = p.configuredModel();
+        for (const archetype of archetypesList) {
+          const compatCats = compatibleCategories(archetype).filter((c) => activeCats.has(c));
+          if (compatCats.length === 0) continue;
+          const allowed = isCellAllowed(p.name, model, archetype, stats);
+          const k = cellKey(p.name, model, archetype);
+          const samples = stats.stats[k]?.questionsAssessed ?? 0;
+          const gap = Math.max(0, targetSamples - samples);
+          if (gap === 0 && allowed.compatible) continue;
+          targets.push({ provider: p.name, model, archetype, samples, gap, blocked: allowed.compatible ? null : (allowed.reason ?? 'blocked') });
+        }
+      }
+      targets.sort((a, b) => b.gap - a.gap);
+
+      const totalGap = targets.filter((t) => !t.blocked).reduce((sum, t) => sum + t.gap, 0);
+      const totalBlocked = targets.filter((t) => t.blocked).length;
+
+      console.log(`\n=== Fill-gaps DRY RUN — target ≥${targetSamples} samples per cell ===\n`);
+      console.log(`provider`.padEnd(24) + 'archetype'.padEnd(20) + 'now'.padStart(5) + ' → ' + 'gap'.padStart(4) + '  blocked?');
+      console.log('-'.repeat(70));
+      for (const t of targets) {
+        const blockStr = t.blocked ? `🚫 ${t.blocked.slice(0, 30)}` : '';
+        console.log(
+          t.provider.padEnd(24) +
+          t.archetype.padEnd(20) +
+          String(t.samples).padStart(5) +
+          ' → ' +
+          String(t.gap).padStart(4) +
+          '  ' + blockStr,
+        );
+      }
+      console.log(`\nTotal cells needing samples: ${targets.filter((t) => !t.blocked).length}`);
+      console.log(`Total blocked cells (manual or auto-disabled): ${totalBlocked}`);
+      console.log(`Total target generations to close all gaps: ~${totalGap}`);
+      console.log(`Estimated budget at $0.05/generated (rough avg): ~$${(totalGap * 0.05).toFixed(2)}`);
+      console.log(`\nRe-run without --dry-run + with -b <budget> to start generating.`);
+      return;
+    }
+
+    // --- real run -----------------------------------------------------
+    if (!opts.budget || !Number.isFinite(Number(opts.budget))) {
+      throw new Error(`-b <budget> is required (unless --dry-run). Pass e.g. -b 25.`);
+    }
+
+    const { autoGenerate } = await import('./orchestrator.js');
+    const summary = await autoGenerate({
+      // Effectively unlimited — we stop when all cells hit target OR budget/max-batches.
+      targetSurvivors: 1_000_000,
+      budgetUsd: Number(opts.budget),
+      batchSize: Number(opts.batchSize),
+      maxBatches: Number(opts.maxBatches),
+      poolPath: opts.pool,
+      categories: opts.categories ? String(opts.categories).split(',').map((s) => s.trim()) : undefined,
+      archetypes: opts.archetypes
+        ? (String(opts.archetypes).split(',').map((s) => s.trim()) as Archetype[])
+        : undefined,
+      providers: opts.providers
+        ? (String(opts.providers).split(',').map((s) => s.trim()) as ChatProviderName[])
+        : undefined,
+      logDir: opts.logDir,
+      // Evolver mid-run would mutate seeds.jsonl while we're trying to keep
+      // the fill targeted at specific cells — disable for fill-gaps runs.
+      evolverTickEvery: 0,
+      rotation: 'sequential',
+      concurrentBatches: opts.concurrentBatches ? Number(opts.concurrentBatches) : 2,
+      qualityAltModel: opts.qualityAltModel,
+      fillGaps: { targetSamplesPerCell: targetSamples },
+    });
+    console.log(`\n${costLogger.summary()}`);
+    console.log(`\nStop reason: ${summary.stopReason}`);
+    console.log(`Survivors added: ${summary.totals.questionsSurvived}`);
+    console.log(`Pool: ${summary.totals.poolSizeStart} → ${summary.totals.poolSizeEnd}`);
+    console.log(`Cost: $${summary.totals.totalCost.toFixed(4)}`);
+    console.log(`\nNext: run \`node analyze-all.mjs && node compute-ideas-matrix.mjs\` to regenerate the matrix.`);
   });
 
 // ---------------------------------------------------------------------------

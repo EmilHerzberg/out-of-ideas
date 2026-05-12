@@ -36,17 +36,123 @@ function priceForGoogleModel(model: string): GooglePricing {
   return GOOGLE_DEFAULT_PRICING;
 }
 
-let vertexAiClient: GoogleGenAI | null = null;
+let googleClient: GoogleGenAI | null = null;
+let googleClientMode: 'apikey' | 'vertex' | null = null;
 
-function getVertexClient() {
-  if (!vertexAiClient) {
-    if (!PROJECT) {
-      throw new Error('GOOGLE_CLOUD_PROJECT is required for Google provider.');
-    }
-    // Setup using Vertex AI backend
-    vertexAiClient = new GoogleGenAI({ project: PROJECT, location: LOCATION, vertexai: true });
+/**
+ * Resolve a Google GenAI client. Prefers direct Gemini API (AI Studio) when
+ * GOOGLE_API_KEY is set; falls back to Vertex AI when GOOGLE_CLOUD_PROJECT is
+ * configured. Cached after first call.
+ *
+ * Chat + verifier work in both modes. The embedder still requires Vertex
+ * because text-multilingual-embedding-002 is Vertex-only — embed-time checks
+ * for this and gives a clear error if only API-key mode is available.
+ */
+function getGoogleClient() {
+  if (googleClient) return googleClient;
+
+  if (config.GOOGLE_API_KEY) {
+    googleClient = new GoogleGenAI({ apiKey: config.GOOGLE_API_KEY });
+    googleClientMode = 'apikey';
+    return googleClient;
   }
-  return vertexAiClient;
+  if (PROJECT) {
+    googleClient = new GoogleGenAI({ project: PROJECT, location: LOCATION, vertexai: true });
+    googleClientMode = 'vertex';
+    return googleClient;
+  }
+  throw new Error(
+    'Google provider requires either GOOGLE_API_KEY (AI Studio direct mode) ' +
+    'or GOOGLE_CLOUD_PROJECT + GOOGLE_APPLICATION_CREDENTIALS (Vertex AI mode). ' +
+    'Set one in .env.',
+  );
+}
+
+function isApiKeyMode(): boolean {
+  if (googleClientMode === null) getGoogleClient();
+  return googleClientMode === 'apikey';
+}
+
+// Module-level throttle state for embed-call pacing (AI Studio free tier
+// caps embedding at ~100 RPM globally per key — must be SHARED across all
+// concurrent embedBatch instances, not per-instance, hence module-level).
+let __lastEmbedCallEndedAt = 0;
+async function __throttleEmbedCall(delayMs: number): Promise<void> {
+  if (delayMs <= 0) return;
+  const elapsed = Date.now() - __lastEmbedCallEndedAt;
+  if (elapsed < delayMs) {
+    await new Promise((r) => setTimeout(r, delayMs - elapsed));
+  }
+  __lastEmbedCallEndedAt = Date.now();
+}
+
+// ---------------------------------------------------------------------------
+// Long-running retry-with-backoff for Google API calls
+// ---------------------------------------------------------------------------
+//
+// The Gemini / AI Studio / Vertex APIs return transient errors much more
+// often than feels reasonable (429 rate-limit, 500/502/503/504 capacity).
+// "This model is currently experiencing high demand" can persist for
+// 5-30 minutes during morning spikes. To prevent orchestrator runs from
+// aborting mid-batch every time Google has a hiccup, every Google API
+// call goes through this retry budget:
+//
+//   - Up to 60 min total retry window (configurable)
+//   - Per-sleep cap of 2 min (so we don't sleep an absurd 17-min between attempts)
+//   - Exponential backoff with jitter: 1s, 2s, 4s, 8s, 16s, 32s, 64s, 120s, 120s, ...
+//   - Stops immediately on 4xx auth errors (invalid key, billing) — no point retrying
+//
+// If 60 min isn't enough, the underlying issue is bigger than a hiccup and
+// operator intervention is needed. The orchestrator's own auto-disable
+// kicks in after consecutive failures (separate from this retry).
+
+const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
+const FATAL_STATUSES = new Set([400, 401, 403, 404]);
+const DEFAULT_MAX_TOTAL_MS = 60 * 60 * 1000; // 1 hour
+const DEFAULT_MAX_SLEEP_MS = 2 * 60 * 1000;  // 2 min per sleep cap
+
+async function googleCallWithRetry<T>(
+  callName: string,
+  call: () => Promise<T>,
+  opts: { maxTotalMs?: number; maxSleepMs?: number } = {},
+): Promise<T> {
+  const maxTotalMs = opts.maxTotalMs ?? DEFAULT_MAX_TOTAL_MS;
+  const maxSleepMs = opts.maxSleepMs ?? DEFAULT_MAX_SLEEP_MS;
+  const startTime = Date.now();
+  let attempt = 0;
+  let lastErr: unknown = null;
+
+  while (Date.now() - startTime < maxTotalMs) {
+    try {
+      return await call();
+    } catch (err) {
+      lastErr = err;
+      const status = (err as { status?: number }).status;
+      // Fatal: auth/permission/model-not-found — retrying won't help.
+      if (status !== undefined && FATAL_STATUSES.has(status)) throw err;
+      // If it's not in our known-retryable set, also fail fast.
+      if (status !== undefined && !RETRYABLE_STATUSES.has(status)) throw err;
+      const elapsed = Date.now() - startTime;
+      const remaining = maxTotalMs - elapsed;
+      if (remaining <= 0) break;
+      const baseDelay = Math.min(maxSleepMs, 2 ** Math.min(attempt, 30) * 1000);
+      const jitter = Math.floor(Math.random() * 500);
+      const delay = Math.min(baseDelay + jitter, remaining);
+      const msg = (err as { message?: string }).message ?? String(err);
+      const elapsedMin = (elapsed / 60000).toFixed(1);
+      process.stderr.write(
+        `[google:${callName}] retry ${attempt + 1} after ${(delay / 1000).toFixed(1)}s ` +
+        `(elapsed ${elapsedMin}min, status ${status ?? '?'}, "${msg.slice(0, 80)}")\n`,
+      );
+      await new Promise((r) => setTimeout(r, delay));
+      attempt++;
+    }
+  }
+  const totalMin = ((Date.now() - startTime) / 60000).toFixed(1);
+  throw new Error(
+    `Google API ${callName} failed after ${attempt} retries over ${totalMin} min. ` +
+    `Last error: ${(lastErr as { message?: string })?.message ?? lastErr}`,
+  );
 }
 
 export class GoogleChatProvider implements ChatProvider {
@@ -57,18 +163,20 @@ export class GoogleChatProvider implements ChatProvider {
     userPrompt: string,
     opts: ChatOptions = {},
   ): Promise<ChatResult> {
-    const ai = getVertexClient();
+    const ai = getGoogleClient();
 
-    const response = await ai.models.generateContent({
-      model: config.GOOGLE_GENERATOR_MODEL,
-      contents: userPrompt,
-      config: {
-        systemInstruction: systemPrompt,
-        maxOutputTokens: opts.maxTokens ?? 2048,
-        temperature: opts.temperature ?? 0.7,
-        ...(opts.jsonMode ? { responseMimeType: 'application/json' } : {}),
-      }
-    });
+    const response = await googleCallWithRetry('generateContent', () =>
+      ai.models.generateContent({
+        model: config.GOOGLE_GENERATOR_MODEL,
+        contents: userPrompt,
+        config: {
+          systemInstruction: systemPrompt,
+          maxOutputTokens: opts.maxTokens ?? 2048,
+          temperature: opts.temperature ?? 0.7,
+          ...(opts.jsonMode ? { responseMimeType: 'application/json' } : {}),
+        },
+      }),
+    );
 
     const result = response;
 
@@ -125,7 +233,7 @@ export class GoogleVerifierProvider implements VerifierProvider {
     question: string,
     options: readonly [string, string, string, string],
   ): Promise<VerifyResult> {
-    const ai = getVertexClient();
+    const ai = getGoogleClient();
 
     // Verifier prompt: split into system instruction (the contract) and user
     // input (the question). Thinking-class models (Gemini 3.x in particular)
@@ -160,16 +268,24 @@ B) ${options[1]}
 C) ${options[2]}
 D) ${options[3]}`;
 
-    const response = await ai.models.generateContent({
-      model: config.GOOGLE_VERIFIER_MODEL,
-      contents: userPrompt,
-      config: {
-        systemInstruction,
-        temperature: 0.1,
-        responseMimeType: 'application/json',
-        tools: [{ googleSearch: {} }]
-      }
-    });
+    // AI Studio mode rejects `responseMimeType: 'application/json'` when
+    // combined with `tools: [{ googleSearch: {} }]` (400 INVALID_ARGUMENT:
+    // "Tool use with a response mime type: 'application/json' is
+    // unsupported"). Vertex AI accepted the combination, but AI Studio does
+    // not. We drop the mime type and rely on the system-prompt's "Return
+    // ONLY a JSON object — no markdown fences" instruction, plus a robust
+    // parser below that handles fence-wrapping defensively.
+    const response = await googleCallWithRetry('verifyContent', () =>
+      ai.models.generateContent({
+        model: config.GOOGLE_VERIFIER_MODEL,
+        contents: userPrompt,
+        config: {
+          systemInstruction,
+          temperature: 0.1,
+          tools: [{ googleSearch: {} }],
+        },
+      }),
+    );
 
     const result = response;
     const rawResponse = result.text ?? '{}';
@@ -183,10 +299,32 @@ D) ${options[3]}`;
 
     costLogger.record('google', costUsd, { input: inputTokens, output: outputTokens });
 
+    // Robust JSON extraction. Without responseMimeType the model may wrap
+    // its output in markdown fences (```json ... ```) or add a stray line
+    // of commentary despite the system-prompt instruction. Strategy:
+    //   1. Try parsing the raw response directly (works if model obeyed).
+    //   2. Strip ```json / ``` fences if present.
+    //   3. Fall back to extracting the first `{...}` block via regex.
     let parsed: any;
     try {
       parsed = JSON.parse(rawResponse);
     } catch {
+      try {
+        const stripped = rawResponse
+          .replace(/^[\s\S]*?```(?:json)?\s*/, '')
+          .replace(/\s*```[\s\S]*$/, '')
+          .trim();
+        parsed = JSON.parse(stripped);
+      } catch {
+        try {
+          const match = rawResponse.match(/\{[\s\S]*\}/);
+          parsed = match ? JSON.parse(match[0]) : null;
+        } catch {
+          parsed = null;
+        }
+      }
+    }
+    if (!parsed || typeof parsed !== 'object') {
       parsed = { chosenLetter: 'A', confidence: 'low', citation: 'Failed to parse JSON.' };
     }
 
@@ -212,16 +350,47 @@ export class GoogleEmbeddingProvider implements EmbeddingProvider {
   }
 
   async embedBatch(texts: string[]): Promise<EmbedResult[]> {
-    const ai = getVertexClient();
+    const ai = getGoogleClient();
+
+    // Pick a model based on auth mode:
+    //   - Vertex AI mode: configured GOOGLE_EMBEDDER_MODEL works as-is.
+    //   - API-key mode (AI Studio): `text-multilingual-embedding-002` is
+    //     NOT reachable via the Gemini API endpoint; auto-fallback to
+    //     `gemini-embedding-001` (default 3072-d, here we request 768-d
+    //     via outputDimensionality for storage parity with the existing pool).
+    //
+    // WARNING: different models = different vector spaces. Mixing them in
+    // the same pool breaks dedup. If you switch auth modes, run
+    // `re-embed-pool.mjs` once to re-embed the full pool with the new model
+    // before continuing generation.
+    let model = config.GOOGLE_EMBEDDER_MODEL;
+    if (isApiKeyMode() && model === 'text-multilingual-embedding-002') {
+      model = 'gemini-embedding-001';
+    }
+
+    // For gemini-embedding-001 we explicitly request 768-d output. Otherwise
+    // the model defaults to 3072-d which would 4× our pool storage size.
+    const embedConfig: { outputDimensionality?: number } | undefined =
+      model.startsWith('gemini-embedding') ? { outputDimensionality: 768 } : undefined;
 
     const results: EmbedResult[] = [];
 
+    // Throttle between calls when in API-key mode — AI Studio free tier
+    // caps embedding requests at ~100 RPM globally. 700ms spacing keeps us
+    // under that with margin. Shared via module-level state so concurrent
+    // embedBatch instances (driven by pLimit upstream) coordinate timing.
+    const throttleMs = isApiKeyMode() ? 700 : 0;
+
     // Process in batches if necessary, but simple loop for now
     for (const text of texts) {
-      const response = await ai.models.embedContent({
-        model: config.GOOGLE_EMBEDDER_MODEL,
-        contents: text,
-      });
+      await __throttleEmbedCall(throttleMs);
+      const response = await googleCallWithRetry('embedContent', () =>
+        ai.models.embedContent({
+          model,
+          contents: text,
+          ...(embedConfig ? { config: embedConfig } : {}),
+        }),
+      );
 
       // Approximate cost (very cheap, roughly $0.025 / 1M chars)
       const costUsd = (text.length * 0.025) / 1_000_000;

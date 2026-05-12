@@ -13,11 +13,12 @@ import { loadSeeds } from './seeds.js';
 import { evolveSeeds } from './seed-evolver.js';
 import { costLogger } from './cost-logger.js';
 import { getActiveChatProviders } from './providers/factory.js';
-import { isCompatible } from './archetype-compatibility.js';
+import { isCompatible, compatibleCategories } from './archetype-compatibility.js';
 import {
   loadProviderArchetypeStats,
   isCellAllowed,
   recordBatchOutcome,
+  cellKey,
 } from './provider-archetype-constraints.js';
 import { Mutex } from './utils/mutex.js';
 import type { Archetype, Question, Seed } from './schema.js';
@@ -69,7 +70,7 @@ export interface AutoGenerateOptions {
   maxBatches?: number;
   /** Questions per batch. Default 8. */
   batchSize?: number;
-  /** Path to the running default-repertoire pool. Default `data/finalized-pool.jsonl`. */
+  /** Path to the running canonical pool. Default `data/finalized-pool.jsonl`. */
   poolPath?: string;
   /** Restrict to specific categories (default: all categories with active seeds). */
   categories?: string[];
@@ -144,6 +145,29 @@ export interface AutoGenerateOptions {
    * meant to be reproducible).
    */
   rotation?: 'sequential' | 'random';
+  /**
+   * Targeted gap-filling mode. When set, the orchestrator IGNORES the normal
+   * (category × archetype) outer rotation and instead targets specific
+   * (provider × archetype) cells that have insufficient sample counts.
+   *
+   * Picks the cell with the LOWEST current `questionsAssessed` first
+   * (frontload the most-needed cells), respects provider-uniqueness for
+   * concurrent batches, and stops when every reachable cell has at least
+   * `targetSamplesPerCell` assessed questions OR budget / max-batches
+   * is hit.
+   *
+   * Each cell rotates through its compatible categories deterministically
+   * (modulo current sample count) so repeated visits hit different
+   * categories rather than re-hitting the same one.
+   *
+   * Used by the `fill-gaps` CLI command.
+   */
+  fillGaps?: {
+    /** Target minimum `questionsAssessed` per (provider, model, archetype)
+     *  cell. The orchestrator stops generating against a cell once it
+     *  reaches this number. */
+    targetSamplesPerCell: number;
+  };
 }
 
 interface Triple {
@@ -430,6 +454,66 @@ export async function autoGenerate(opts: AutoGenerateOptions): Promise<RunSummar
     outerIdx = (outerIdx + 1) % outerOrder.length;
   };
 
+  /**
+   * Fill-gaps triple picker — alternative to nextTriple(). Picks the
+   * (provider × archetype) cell with the LOWEST current `questionsAssessed`
+   * count that's still below `targetSamplesPerCell`. Rotates through
+   * compatible categories per cell using `samples % compat.length` so
+   * repeated visits hit different categories.
+   *
+   * Returns null when every reachable cell has hit the target (stop signal).
+   */
+  const fillGapsTarget = opts.fillGaps?.targetSamplesPerCell ?? 0;
+  const nextFillGapsTriple = (excludeProviders: ReadonlySet<ChatProviderName> = new Set()): Triple | null => {
+    if (!opts.fillGaps) return null;
+
+    interface Candidate { provider: typeof providers[number]; archetype: Archetype; samples: number }
+    const candidates: Candidate[] = [];
+
+    for (const p of providers) {
+      if (disabledProviders.has(p.name)) continue;
+      if (excludeProviders.has(p.name)) continue;
+      const model = p.configuredModel();
+      for (const archetype of archetypes) {
+        // Need at least one compatible category in our usable set.
+        const compatCats = compatibleCategories(archetype).filter((c) => usableCategories.includes(c));
+        if (compatCats.length === 0) continue;
+        // Respect manual + auto-disable blocklist (same as normal rotation).
+        const allowed = isCellAllowed(p.name, model, archetype, providerArchetypeStats);
+        if (!allowed.compatible) continue;
+        // Live sample count — recordBatchOutcome mutates the in-memory cache,
+        // so this picks up freshly-completed batches without needing re-load.
+        const k = cellKey(p.name, model, archetype);
+        const samples = providerArchetypeStats.stats[k]?.questionsAssessed ?? 0;
+        if (samples >= fillGapsTarget) continue; // cell already filled
+        candidates.push({ provider: p, archetype, samples });
+      }
+    }
+
+    if (candidates.length === 0) return null;
+
+    // Lowest sample count first (frontload most-needed cells). Tiebreaker:
+    // provider order in `providers` for determinism across runs.
+    candidates.sort((a, b) => {
+      if (a.samples !== b.samples) return a.samples - b.samples;
+      return providers.indexOf(a.provider) - providers.indexOf(b.provider);
+    });
+    const chosen = candidates[0];
+
+    // Pick a compatible category — rotate by samples count so repeated
+    // visits hit different categories within the same cell.
+    const compatCats = compatibleCategories(chosen.archetype).filter((c) => usableCategories.includes(c));
+    const category = compatCats[chosen.samples % compatCats.length];
+
+    providerBatchCount[chosen.provider.name]++;
+    return {
+      category,
+      archetype: chosen.archetype,
+      provider: chosen.provider,
+      key: `${chosen.provider.name}|${category}|${chosen.archetype}`,
+    };
+  };
+
   const nextTriple = (excludeProviders: ReadonlySet<ChatProviderName> = new Set()): Triple | null => {
     const totalCombos = outerOrder.length;
     // Two passes: first prefer non-deprioritized categories; then if everything
@@ -564,8 +648,12 @@ export async function autoGenerate(opts: AutoGenerateOptions): Promise<RunSummar
       continue;
     }
 
-    // Pick a triple, excluding currently in-flight providers.
-    const triple = nextTriple(inFlightProviders);
+    // Pick a triple, excluding currently in-flight providers. In fill-gaps
+    // mode, the picker targets cells under the sample threshold instead of
+    // the normal (category × archetype) outer rotation.
+    const triple = opts.fillGaps
+      ? nextFillGapsTriple(inFlightProviders)
+      : nextTriple(inFlightProviders);
     if (!triple) {
       if (inFlightPromises.size === 0) {
         stopReason = 'all_saturated';
@@ -810,7 +898,7 @@ export async function autoGenerate(opts: AutoGenerateOptions): Promise<RunSummar
           proposalsOutputPath: proposalsPath,
           // Use Google (Gemini Pro) for new-seed proposals. Gemini's broader
           // training-data lineage produces seed angles that are LESS likely
-          // to overlap with what DeepSeek itself would default to during
+          // to overlap with what DeepSeek itself would canonicalise during
           // generation — we want fresh territory, not echoes of the same model.
           proposalProvider: 'google',
         });
