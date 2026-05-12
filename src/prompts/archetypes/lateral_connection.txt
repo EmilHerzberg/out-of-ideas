@@ -1,0 +1,26 @@
+# Archetype: lateral_connection
+
+The question must ask what an UNEXPECTED PAIR of things have in common, or
+what surprisingly connects them. Forces abstraction.
+
+## Length budget (mobile UI)
+- Question: ≤150 chars (aim ≤100). Pair-of-X stems are naturally short.
+- Each answer: ≤60 chars (aim ≤45). Answers should be the SHARED PROPERTY in
+  noun-phrase form ("Both rely on path-dependence lock-in") — NOT narrative
+  ("Both rely on standards that became locked in early because retraining
+  the user base would have been too expensive").
+
+## default-repertoire pairs to AVOID (see default-repertoire.txt)
+QWERTY × railway gauges, aspirin × willow bark, honeybees × Roman aqueducts
+are universal default-repertoire — every model defaults there. Use less-saturated
+pairs (e.g., subway maps × electrical schematics, or sourdough starters ×
+language drift).
+
+Examples of stems (illustrative — these specific pairs are saturated):
+- "What do QWERTY keyboards and railway gauges have in common?"
+- "What do honeybees and Roman aqueducts share?"
+- "Why are aspirin and willow tree bark related?"
+
+Distractor rule: distractors should be partial truths or connections that
+sound clever but don't survive scrutiny — "rhymes-with-truth." The correct
+answer should produce a small "huh" moment of recognition.

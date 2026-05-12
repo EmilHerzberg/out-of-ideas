@@ -1,0 +1,47 @@
+# Archetype: comparison
+
+The question must force the player to RANK or COMPARE items, often
+counterintuitively.
+
+## Length budget (mobile UI)
+Comparison stems often list 4 items in the question itself, which pushes the
+question over budget when item names are long. Two strategies:
+- Use SHORT item names in the stem ("pyramids, language, mammoths, Stonehenge")
+  not full descriptions ("the Great Pyramid of Giza, the earliest written
+  language, woolly mammoths, the Stonehenge monument").
+- If items can't be shortened, move them out of the stem and into the answer
+  options — ask "which of these is oldest?" with the items as A/B/C/D.
+- Question: ≤150 chars (aim ≤120). Each answer: ≤60 chars (aim ≤30 since
+  comparison answers are usually item names).
+
+Note: the example stem below is illustrative; the orchestrator will dedup
+this exact pyramids-vs-mammoths comparison as it's a known default-repertoire (see
+default-repertoire.txt's comparison section).
+
+Examples of stems:
+- "Which is older: the pyramids of Giza, written language, mammoths, or Stonehenge?"
+- "Which is heavier per cubic meter: water, milk, gasoline, or honey?"
+- "Which is wider: the Pacific Ocean or the Moon's diameter?"
+
+Distractor rule: all 4 items must be in the same conceptual category and feel
+plausibly comparable. The answer should be at least 2x to 10x off from the
+nearest distractor on the dimension being compared. Include actual numbers in
+the explanation when the comparison is quantitative.
+
+Hard rules:
+- Stem must explicitly use a comparative ("which is older / bigger / faster /
+  heavier / wider / older than the others").
+- The correct answer must be COUNTERINTUITIVE — the average player's first
+  guess should be wrong. If the answer is the obvious choice, regenerate.
+- Magnitudes must span 2x–10x at minimum on the comparison dimension.
+
+Contrast examples:
+KEEP — "Which is older: the pyramids of Giza, written language, mammoths,
+or Stonehenge?"
+  correct: "Mammoths" (some still alive when pyramids were built)
+  why it works: counterintuitive (pyramids feel ancient), all 4 in same
+  conceptual category (deep human/animal history), answer rewards reasoning.
+
+REJECTED — "Which is older: the pyramids or your house?"
+  why rejected: not counterintuitive, not in the same conceptual category,
+  no real comparison work for the player.

@@ -1,0 +1,27 @@
+# Archetype: vocab_context
+
+The question must define a word IN CONTEXT through usage, not asking for a
+dictionary definition.
+
+## Length budget (mobile UI)
+- Question: ≤150 chars (aim ≤120). Sentence-context stems naturally include
+  a sample sentence — keep that sentence ≤60 chars and the context framing
+  ≤40 chars. Drop unnecessary attribution ("In the sentence..." → just
+  quote the sentence).
+- Each answer: ≤45 chars. Vocab answers should be short paraphrases ("rude
+  manipulator", "cleverly fallacious", "unctuous flatterer") not full
+  definitions.
+
+## default-repertoire SAT-vocab to AVOID (see default-repertoire.txt)
+"sophistical", "unctuous", "baroque" — well-trodden in AI training data.
+Use less-saturated targets like "phlegmatic", "sere", "pellucid",
+"obsequious", "abstemious".
+
+Examples of stems (illustrative — these specific words are saturated):
+- "In the sentence 'Her arguments were sophistical,' what does 'sophistical' suggest?"
+- "When a chef calls a dish 'unctuous,' they're describing what?"
+- "An author writing in a 'baroque' style is writing in what way?"
+
+Distractor rule: the highest-plausibility distractor should be a "false
+friend" — a word the target word resembles or is often confused with. Other
+distractors should be sibling-meanings in the same semantic neighborhood.

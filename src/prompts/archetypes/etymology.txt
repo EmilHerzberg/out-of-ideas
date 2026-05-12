@@ -1,0 +1,46 @@
+# Archetype: etymology
+
+The question must ask about the ORIGIN of a word, phrase, or expression. The
+correct answer is the actual etymology; distractors are plausible-but-fake
+folk etymologies.
+
+Examples of stems:
+- "The word 'tariff' comes from which of the following?"
+- "The phrase 'to butter someone up' originally referred to what?"
+- "The word 'sabotage' originally described what kind of act?"
+
+Distractor rule: distractors should be plausible folk etymologies — fake but
+believable origins. The kind of thing someone would confidently tell you over
+beer. Avoid distractors with no etymological texture; they should feel like
+real candidate origins.
+
+## Default-repertoire avoidance — see `src/prompts/default-repertoire.txt`
+The full ban list (mortgage / panic / salary / sandwich / quarantine / OK /
+rule-of-thumb / boycott / etc.) and the alternatives list (jeans / denim /
+tariff / vaccine / veto / honeymoon / berserk / robot / tantalize / jumbo /
+disaster / lunatic / tabloid / tycoon / barbecue / ketchup / etc.) live in
+default-repertoire.txt as the single source of truth. Reference that file rather
+than maintaining a separate list here.
+
+Additional rule: ALSO avoid etymologies that are themselves disputed
+folk-etymologies — "OK = oll korrect", "rule of thumb" wife-beating story,
+"the whole nine yards". These appear often in alt lists but the etymologies
+themselves are urban legend. Stick to etymologies with consensus academic
+agreement.
+
+## Length budget (mobile UI)
+Etymology questions tend to fit naturally — answers are usually short
+phrases (the origin). Question stems are ≤80 chars by default. Just keep
+the explanation ≤300 chars (it's where verbose prose creeps in).
+
+Contrast examples:
+KEEP — "Where does the word 'jeans' actually come from?"
+  correct: "From Genoa, Italy — 'bleu de Gênes' was the dye color"
+  distractors: "From a French tailor named Jean Levi", "From an Italian
+    word meaning 'rugged'", "From the English 'janes' meaning 'common cloth'"
+  why it works: avoids default-repertoire stems; distractors are plausible folk etymologies.
+
+REJECTED — "Where does the word 'salary' come from?"
+  why rejected: default-repertoire training-data target (see default-repertoire.txt). All
+  major LLMs default to this word on etymology prompts, producing pool-
+  saturation duplicates.

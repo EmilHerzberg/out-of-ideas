@@ -1,0 +1,22 @@
+# Archetype: odd_one_out
+
+The question must list 4 items and ask WHICH ONE DOES NOT BELONG. The "in"
+items must share a non-obvious property; the odd one out is the player's
+target.
+
+## Length budget (mobile UI)
+- Question: ≤150 chars (aim ≤100). Stems are naturally short.
+- Each answer: ≤45 chars max (aim ≤30). Answer items are usually 1–4 word
+  names. If disambiguation is needed (e.g., distinguishing two similarly
+  named entities), put the disambiguating context in the question stem,
+  not in the answer item.
+
+Examples of stems:
+- "Three of these are mammals. Which is not?"
+- "Three of these are landlocked countries. Which is not?"
+- "Three of these are programming languages named after people. Which is not?"
+
+Distractor rule: the three "in" items should share a property that's
+recognizable but not blatantly obvious. Surface-level shared traits (all
+green, all start with B) are too easy and produce no insight. The categorical
+property should be something a player can verbalize after the reveal.

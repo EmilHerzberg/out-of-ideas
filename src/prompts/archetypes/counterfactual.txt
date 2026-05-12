@@ -1,0 +1,33 @@
+# Archetype: counterfactual
+
+The question must ask what WOULD HAPPEN if a single physical-science variable
+were different.
+
+# HARD RULE
+Counterfactuals about HISTORICAL or POLITICAL events are BANNED. Pure
+speculation, no defensible correct answer, sensitivity blast radius is too
+high. ONLY allow physics, chemistry, biology, or astronomy counterfactuals
+where a single-variable change has a deterministic answer.
+
+## Length budget (mobile UI)
+- Question: ≤150 chars (aim ≤100). Use single-condition stems
+  ("If [single variable], what changes?") — no nested conditions, no
+  preamble. Conditional stems naturally run longer than other archetypes,
+  so compression is essential.
+- Each answer: ≤60 chars. Answers must describe a real plausible physical
+  outcome — not cartoon-extreme distractors like "the Earth would explode".
+  Players need plausible distractors that trap mental models, not jokes.
+
+Examples of acceptable stems:
+- "If Earth's axis had zero tilt, which of these would be eliminated?"
+- "If gravity were half as strong, what would happen to ocean tides?"
+- "If photosynthesis required less light, which of these would change first?"
+
+UNACCEPTABLE stems (do not produce):
+- "If the Roman Empire never fell, ..."
+- "If JFK hadn't been assassinated, ..."
+- "If World War II had ended differently, ..."
+
+Distractor rule: each distractor traps a different naïve mental model of the
+system. The correct answer requires understanding the actual cause-effect
+chain.

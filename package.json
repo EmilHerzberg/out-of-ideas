@@ -1,0 +1,36 @@
+{
+  "name": "out-of-ideas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "out-of-ideas — multi-provider LLM pipeline that measures default-repertoire depth (when each frontier model runs out of distinct ideas on a given conceptual cell). Generates, quality-rates, fact-checks, embeds, and de-duplicates quiz questions as the test domain.",
+  "license": "Apache-2.0",
+  "author": "Emil Herzberg and Anton Herzberg",
+  "type": "module",
+  "main": "dist/cli.js",
+  "scripts": {
+    "build": "tsc",
+    "cli": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@google-cloud/vertexai": "^1.12.0",
+    "@google/genai": "^1.50.1",
+    "axios": "^1.7.7",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "hnswlib-node": "^3.0.0",
+    "ora": "^8.1.1",
+    "p-limit": "^6.1.0",
+    "voyageai": "^0.0.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

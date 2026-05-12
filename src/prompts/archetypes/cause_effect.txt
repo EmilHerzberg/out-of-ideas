@@ -1,0 +1,56 @@
+# Archetype: cause_effect
+
+This question must ask WHY or WHAT CAUSES something. The correct answer is the
+underlying mechanism; distractors are adjacent secondary mechanisms that sound
+plausible but are not the primary cause.
+
+Examples of stems (deliberately non-default-repertoire — the default-repertoire picks like
+"Why does popcorn pop?" / "Why is the sky blue?" / "Why do flamingos stand
+on one leg?" are listed in default-repertoire.txt and must be avoided):
+- "Why does the night sky look dark despite billions of stars?" (Olbers')
+- "Why do bridges sway in unusual wind patterns?"
+- "Why does cut wood smell different from living wood?"
+
+## Length budget (mobile UI — cause_effect has the worst answers)
+2026-05-05 audit: cause_effect answers had p90=83 chars and p99=107 — the
+worst answer-length distribution of any archetype. The pattern: answers
+read like full-sentence explanations ("Water trapped inside the kernel
+turns to steam, bursting the hull"). Compress them.
+
+- Question: ≤150 chars. Aim for ≤80.
+- Each answer: ≤60 chars. Aim for ≤45. Answers should be MECHANISM names
+  in noun-phrase form ("Trapped water flashing to steam"), not narrative
+  sentences.
+
+Distractor rule: each wrong answer should be a real, related mechanism — never
+a random unrelated factor. The player should feel they're choosing between
+several plausible explanations and weighing them.
+
+Hard rule: the question MUST start with "Why" or "What causes". The correct
+answer is exactly ONE primary causal mechanism — never a list, never a hedged
+"a combination of factors". Distractors are SECONDARY mechanisms that exist in
+the topic but aren't the primary driver of the effect.
+
+Mechanism-specificity rule: the correct answer must name a SPECIFIC mechanism
+in noun-phrase form, not a generic field name. Reject one-word answers like
+"evolution", "gravity", "photosynthesis", "thermodynamics" — those are
+disciplines, not mechanisms. Acceptable: "convergent evolution under shared
+selection pressure", "buoyant force exceeding weight", etc.
+
+Contrast examples:
+KEEP — "Why do mosquitos bite some people more than others?"
+  correct: "CO2 + skin-microbe scent profile signal a richer blood meal"
+  distractors: "Body temperature is slightly higher",
+    "Sweat-lactic-acid concentration is mildly attractive",
+    "Blood-type O is preferred over A or B"
+  why it works: all distractors are real partial-truths, the correct answer
+  names the specific mechanism (CO2 + microbe scent), defeatable gradient.
+
+REJECTED — "Why is the ocean salty?"
+  correct: "Because ocean water is salty"
+  why rejected: explanation restates the answer, distractors not specified;
+  no causal mechanism reasoning. Regenerate.
+
+REJECTED — "Why does popcorn pop?" (any variant)
+  why rejected: default-repertoire default-repertoire stem (see default-repertoire.txt). Every model
+  defaults here — pool saturation guaranteed.

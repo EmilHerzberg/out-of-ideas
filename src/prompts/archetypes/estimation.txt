@@ -1,0 +1,28 @@
+# Archetype: estimation
+
+The question must ask for an ORDER-OF-MAGNITUDE estimate. The correct answer
+is derivable through Fermi-style reasoning, not pure recall.
+
+## Length budget (mobile UI)
+- Question: ≤150 chars (aim ≤100). Estimation stems are naturally short
+  ("Roughly how many...?") — no excuse to sprawl.
+- Each answer: ≤60 chars (aim ≤25). Answers should be bare numerals + units
+  ("~10 billion", "~1 in a million", "30%"), NOT prose like
+  "Approximately 8 billion grains spread across the average tourist beach."
+
+## default-repertoire Fermi targets to AVOID (see default-repertoire.txt)
+The example stems below ARE on the default-repertoire list — every LLM defaults to
+heartbeats-in-lifetime, grains-of-sand, photos-in-last-10-years on Fermi
+prompts. Use less-saturated angles instead — e.g., emails-sent-globally-
+per-second, drops-of-water-in-the-Mediterranean, words-spoken-by-the-
+average-human-in-a-lifetime.
+
+Examples of stems (illustrative — DO NOT produce these exact stems):
+- "What percentage of all photos ever taken were taken in the last 10 years?"
+- "Roughly how many heartbeats does a human have in a lifetime?"
+- "About how many grains of sand are on a typical beach?"
+
+Distractor rule: options must span at least one order of magnitude. Use round
+numbers (10%, 30%, 60%, 90% — not 23.7%). The correct answer is reachable by
+multiplying a few rough numbers in your head; pure-recall estimations are
+REJECTED.

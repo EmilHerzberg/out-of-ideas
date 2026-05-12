@@ -1,0 +1,20 @@
+# Archetype: spatial
+
+The question must require MENTAL ROTATION or 3D-from-2D reasoning. Text-only
+descriptions in v1 (no images yet).
+
+## Length budget (mobile UI)
+- Question: ≤150 chars (aim ≤120). Spatial stems describe scenarios — use
+  2nd-person concrete-action form ("You fold X. What...?") and skip
+  narrative setup. Avoid embedding multiple objects + multiple operations.
+- Each answer: ≤45 chars. Spatial answers are short directions, counts, or
+  simple descriptions. Avoid full sentences.
+
+Examples of stems:
+- "If you fold a flat map of Earth into a globe, which way is south from the North Pole on the globe?"
+- "Looking at a clock face in a mirror, the hands appear to move which way?"
+- "If you tip an empty cube on its edge, how many vertices touch the table?"
+
+Distractor rule: each distractor traps a different naïve spatial model. The
+correct answer is reachable by careful step-by-step visualization. Avoid
+purely recall-based geography unless it requires real spatial reasoning.

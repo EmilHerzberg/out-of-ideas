@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Question Review — out-of-ideas</title>
+<style>
+  :root {
+    --bg-deep: #0a0613;
+    --bg-base: #120a22;
+    --surface-1: #1a1230;
+    --surface-2: #241846;
+    --ink-primary: #f4f1ff;
+    --ink-muted: #9a93b8;
+    --ink-faint: #5c5673;
+    --duel-a: #ff2e5b;
+    --duel-b: #1fb6ff;
+    --correct: #2bff88;
+    --wrong: #ff3b3b;
+    --warning: #ffd13a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg-base);
+    color: var(--ink-primary);
+    font-family: 'Geist', -apple-system, system-ui, sans-serif;
+    line-height: 1.5;
+    padding: 24px;
+  }
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--surface-2);
+    padding-bottom: 16px; margin-bottom: 24px;
+  }
+  h1 { margin: 0; font-size: 24px; font-weight: 700; }
+  .stats { color: var(--ink-muted); font-size: 14px; }
+  .controls {
+    display: flex; gap: 8px; margin-bottom: 24px;
+  }
+  button {
+    background: var(--surface-2); color: var(--ink-primary);
+    border: 1px solid var(--ink-faint); border-radius: 8px;
+    padding: 8px 16px; font-size: 14px; cursor: pointer;
+    font-family: inherit;
+  }
+  button:hover { background: var(--surface-1); }
+  button.primary { background: var(--duel-a); border-color: var(--duel-a); }
+  button.success { background: var(--correct); color: #000; border-color: var(--correct); }
+  button.warning { background: var(--warning); color: #000; border-color: var(--warning); }
+  button.editorial { background: var(--duel-b); color: #000; border-color: var(--duel-b); }
+  .upload-zone {
+    border: 2px dashed var(--ink-faint); border-radius: 12px;
+    padding: 48px; text-align: center; margin-bottom: 24px;
+    cursor: pointer;
+  }
+  .upload-zone:hover { border-color: var(--duel-b); background: var(--surface-1); }
+  .question-card {
+    background: var(--surface-1); border-radius: 12px;
+    padding: 20px; margin-bottom: 16px;
+    border-left: 4px solid var(--ink-faint);
+  }
+  .question-card.reviewed { opacity: 0.5; }
+  .question-card[data-quality="broken"] { border-left-color: var(--wrong); }
+  .question-card[data-quality="low_priority"] { border-left-color: var(--warning); }
+  .question-card[data-quality="good"] { border-left-color: var(--correct); }
+  .question-meta {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .chip {
+    background: var(--surface-2); border-radius: 4px;
+    padding: 2px 8px; font-size: 11px; color: var(--ink-muted);
+    font-family: 'JetBrains Mono', 'Geist Mono', monospace;
+  }
+  .question-text {
+    font-size: 17px; font-weight: 600; margin-bottom: 12px;
+  }
+  .answers {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 8px; margin-bottom: 12px;
+  }
+  .answer {
+    background: var(--surface-2); border-radius: 8px;
+    padding: 8px 12px; font-size: 14px;
+    border: 1px solid var(--ink-faint);
+  }
+  .answer.correct {
+    border-color: var(--correct); color: var(--correct);
+    background: rgba(43, 255, 136, 0.05);
+  }
+  .explanation {
+    font-style: italic; color: var(--ink-muted);
+    border-left: 2px solid var(--duel-b);
+    padding-left: 12px; margin: 12px 0;
+  }
+  .matches {
+    background: var(--surface-2); border-radius: 8px;
+    padding: 12px; margin-top: 12px; font-size: 13px;
+  }
+  .matches h4 { margin: 0 0 8px 0; color: var(--warning); }
+  .match-row { padding: 4px 0; color: var(--ink-muted); font-size: 12px; }
+  .actions {
+    display: flex; gap: 8px; margin-top: 16px;
+    padding-top: 12px; border-top: 1px solid var(--surface-2);
+  }
+  .actions button { flex: 1; }
+  .pagination {
+    text-align: center; margin: 24px 0;
+    color: var(--ink-muted);
+  }
+  .progress {
+    background: var(--surface-2); border-radius: 4px;
+    height: 6px; margin-bottom: 16px; overflow: hidden;
+  }
+  .progress-bar {
+    background: var(--duel-b); height: 100%;
+    transition: width 0.2s;
+  }
+  textarea {
+    width: 100%; background: var(--bg-deep); color: var(--ink-primary);
+    border: 1px solid var(--ink-faint); border-radius: 8px;
+    padding: 8px; font-family: inherit; font-size: 13px;
+    margin-top: 8px; min-height: 60px; resize: vertical;
+  }
+  .filter-bar {
+    background: var(--surface-1); border-radius: 8px;
+    padding: 12px; margin-bottom: 16px;
+    display: flex; gap: 8px; align-items: center;
+  }
+  .filter-bar label { font-size: 13px; color: var(--ink-muted); }
+  .filter-bar select {
+    background: var(--bg-deep); color: var(--ink-primary);
+    border: 1px solid var(--ink-faint); border-radius: 4px;
+    padding: 4px 8px; font-family: inherit;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Question Review — out-of-ideas</h1>
+  <div class="stats" id="stats">No data loaded.</div>
+</header>
+
+<div id="upload-zone" class="upload-zone">
+  <p>Drop <code>review-data.json</code> here, or click to choose.</p>
+  <p style="font-size: 12px; color: var(--ink-muted);">
+    Generate it via: <code>npm run cli -- review --input data/questions-enriched-YYYY-MM-DD.jsonl</code>
+  </p>
+  <input type="file" id="file-input" accept=".json" style="display:none">
+</div>
+
+<div id="loaded-ui" style="display:none;">
+  <div class="controls">
+    <button onclick="exportDecisions()">Export decisions</button>
+    <button onclick="resetDecisions()">Reset all decisions</button>
+    <button class="primary" onclick="jumpToFirstUnreviewed()">Jump to next unreviewed</button>
+  </div>
+
+  <div class="filter-bar">
+    <label>Filter:</label>
+    <select id="filter" onchange="render()">
+      <option value="all">All review targets</option>
+      <option value="unreviewed">Unreviewed only</option>
+      <option value="broken">Quality: broken</option>
+      <option value="unsalvageable">Archetype: unsalvageable</option>
+      <option value="duplicates">Dedup-flagged</option>
+    </select>
+  </div>
+
+  <div class="progress">
+    <div class="progress-bar" id="progress-bar"></div>
+  </div>
+
+  <div id="questions"></div>
+</div>
+
+<script src="review.js"></script>
+</body>
+</html>

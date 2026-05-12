@@ -1,0 +1,125 @@
+# default-repertoire ban list — single source of truth
+# Referenced by: master.txt, etymology.txt, misconception.txt, cause_effect.txt,
+# rewrite-mobile (inline), seed-verifier.txt, seed-proposer (inline).
+# Keep this file flat and lightweight — it's injected verbatim where needed.
+
+## Why this file exists
+Every modern LLM converges on the same trivia default-repertoire stems when prompted with
+generic stems. Run 8 (2026-04-29) demonstrated all 4 frontier providers
+defaulted to "mortgage", "panic", "salary", "sandwich", "quarantine" within
+their first etymology batches. Pool dedup catches the symptom but burns the
+generation + quality + verify spend.
+
+This file collects the ban list once. Whenever a prompt needs to reject AI
+training-data default repertoireicals, it should reference this file rather than maintain
+its own list.
+
+## BANNED STEMS (cross-archetype — universal default-repertoire)
+These question stems are saturated across every provider in our rotation.
+NEVER produce a question matching any of these stems, in any archetype:
+
+### Cause/effect default-repertoire stems
+- "Why does popcorn pop?" / "Why does microwave popcorn pop?"
+- "Why is the sky blue?" / "Why are sunsets red?" / "Why is the ocean blue?"
+- "Why do onions make you cry?"
+- "Why does brain freeze happen?"
+- "Why do we yawn when someone yawns?"
+- "Why is Venus hotter than Mercury?"
+- "Why do stars twinkle?" / "Why do planets shine steady?"
+- "Why does ice float?"
+- "Why do leaves change color in autumn?"
+- "Why does the moon look bigger near the horizon?"
+- "Why do flamingos stand on one leg?"   (saturated 2026-04)
+- "Why does inhaling helium make voices high?"
+- "What causes the smell after rain (petrichor)?"
+- "Why do pruney fingers happen in water?"
+
+### Etymology default-repertoire stems
+- "salary" (Roman salt pay)
+- "mortgage" (Old French "death pledge")
+- "panic" (Greek god Pan)
+- "sandwich" (Earl of Sandwich)
+- "quarantine" (40 days, Venetian plague)
+- "OK" (oll korrect / Old Kinderhook — itself disputed)
+- "rule of thumb" (wife-beating story — itself disputed)
+- "the whole nine yards" (itself disputed origin)
+- "mind your Ps and Qs"
+- "checkmate" (Persian shah-mat)
+- "boycott" (Captain Boycott)
+
+### Misconception default-repertoire stems
+- 10% of brain (the "we only use 10%" myth)
+- Einstein failed math in school
+- We swallow 8 spiders a year while sleeping
+- Goldfish have a 3-second memory
+- Lemmings commit mass suicide
+- Vikings wore horned helmets
+- Roman vomitoriums were rooms for vomiting
+- Medieval people thought the Earth was flat
+- Napoleon was unusually short
+- Bulls are angered by red
+- Ostriches bury their heads in sand
+- Lightning never strikes the same place twice
+- We lose most body heat through our heads
+
+### Estimation Fermi default-repertoire stems
+- "How many heartbeats in a human lifetime?"
+- "How many grains of sand on a typical beach?"
+- "What % of photos ever taken were taken in the last 10 years?"
+- "How many cells in the human body?"
+- "How many breaths in a lifetime?"
+
+### Comparison default-repertoire stems
+- pyramids vs Stonehenge vs mammoths vs written language ("which is older")
+- Mid-Ocean Ridge vs Andes vs Himalayas (longest mountain range)
+- Mt Everest base-to-summit vs Mauna Kea base-to-summit
+- Atacama vs Sahara (driest place)
+
+### Lateral_connection default-repertoire stems
+- QWERTY keyboards × railway gauges (path-dependence)
+- Aspirin × willow bark
+- Honeybees × Roman aqueducts (hexagonal cells)
+
+### Vocab_context default-repertoire stems
+- "sophistical" / "unctuous" / "baroque" (well-trodden SAT-vocab)
+
+## ALTERNATIVES (use these if you need a less-saturated example)
+
+### Etymology — fresh targets
+- "jeans" (from Genoa)
+- "denim" (from Nîmes)
+- "tariff" (from Tarifa, Spain)
+- "vaccine" (from Latin vacca, cow)
+- "veto" (Latin "I forbid")
+- "honeymoon" (mead month)
+- "berserk" (Old Norse bear-shirt warriors)
+- "robot" (Czech robota, forced labor)
+- "tantalize" (Tantalus myth)
+- "jumbo" (the elephant)
+- "disaster" (Italian dis-astro, ill-starred)
+- "lunatic" (luna, moon)
+- "tabloid" (originally a brand of medicine compressed into tablets)
+- "tycoon" (Japanese taikun)
+- "denim" (de Nîmes)
+- "barbecue" (Taino barabicu)
+- "ketchup" (Hokkien kê-chiap, fish sauce)
+
+### Misconception — fresh myths
+- Bats are not blind (the "blind as a bat" myth)
+- Hair and nails do not grow after death
+- Cracking knuckles does not cause arthritis
+- The Great Wall of China is not visible from space with the naked eye
+- Carrots do not significantly improve night vision (WWII propaganda origin)
+- Mount Everest is not the closest point to space (Chimborazo is, due to equatorial bulge)
+- Goldfish do not need to be kept in pairs to avoid loneliness
+- Glass is not a slow-flowing liquid at room temperature
+- The Coriolis force does not determine which way toilets flush
+
+## Usage protocol for prompts that reference this file
+When a prompt cites default-repertoire.txt, the model is expected to:
+1. Read the BANNED STEMS section as a hard reject list
+2. If a draft naturally lands on one of these stems, REGENERATE entirely
+3. Do not produce variations that retain the default-repertoire answer (e.g., a
+   misconception question whose correct-answer text is "actually we use 100% of
+   our brain" still inherits the 10%-brain default repertoire — REJECT)
+4. When stuck, draw from the ALTERNATIVES list as a starting point

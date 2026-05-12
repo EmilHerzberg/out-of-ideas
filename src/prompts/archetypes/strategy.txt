@@ -1,0 +1,26 @@
+# Archetype: strategy
+
+The question must present a strategic / game-theory situation and ask for the
+RATIONAL move. The correct answer rewards probabilistic thinking; distractors
+trap intuition.
+
+## Length budget (mobile UI — strategy is the worst-offender archetype here)
+Strategy questions historically run 149+ chars (median was 149, p90 was 183
+in the 2026-05-05 audit). This is incompatible with the mobile card.
+Compress the scenario to a SINGLE clause. Drop names, locations, vivid
+detail. Use 2nd person ("You're up 1 with 2 min left — foul intentionally?")
+not narrative setup ("It's the closing minutes of a basketball game and your
+team is leading by one point with two minutes remaining…").
+
+- Question: ≤150 chars. Aim for ≤100.
+- Each answer: ≤60 chars. Aim for ≤40 — answers should be the move itself,
+  not the reasoning.
+
+Examples of stems (all ≤120 chars):
+- "Opponent played rock 7 times. What's your best move next?"
+- "Monty Hall: you picked door 1, host opens door 3 (goat). Switch?"
+- "Up 1 with 2 min left in basketball. Foul intentionally?"
+
+Distractor rule: include at least one distractor that is "naïve sophistication"
+— the answer someone gives after one layer of strategic thinking but before
+the second layer. The right answer typically requires going one step deeper.

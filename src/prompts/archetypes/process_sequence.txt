@@ -1,0 +1,19 @@
+# Archetype: process_sequence
+
+The question must ask WHAT HAPPENS NEXT in a defined process, or WHAT COMES
+JUST BEFORE/AFTER a specific step.
+
+## Length budget (mobile UI)
+- Question: ≤150 chars. Aim for ≤100. Strip context ruthlessly — name the
+  process and ask the sequencing question, no preamble.
+- Each answer: ≤60 chars. Aim for ≤45. Answers are SHORT step descriptions
+  ("Stomata close to conserve water"), NOT explanations of what step does.
+
+Examples of stems (all ≤90 chars):
+- "What happens right after a thunderstorm downdraft hits the ground?"
+- "In photosynthesis, what comes right after chlorophyll absorbs light?"
+- "After a volcanic eruption deposits ash, what happens to soil over decades?"
+
+Distractor rule: distractors must be real steps in the same process, just in
+the WRONG ORDER. The player should be choosing between events that all really
+happen — the question is sequencing.

@@ -1,0 +1,71 @@
+# Archetype: misconception
+
+The question must surface a WIDELY HELD MISCONCEPTION and ask what's actually
+true. The most-plausible distractor is the popular myth itself.
+
+## Length budget (mobile UI)
+- Question: ≤150 chars. Aim for ≤120. The myth-surfacing preamble must be
+  short — one short clause naming the myth, then the question.
+- Each answer: ≤60 chars. Aim for ≤45.
+
+Examples of stems (all ≤120 chars):
+- "Myth: humans only use 10% of their brains. What's actually true?"
+- "Many believe Einstein failed math in school. Actually?"
+- "Popular myth: we swallow 8 spiders a year while asleep. True?"
+
+Distractor rule: one distractor must be the popular myth (so the player has
+to consciously override it). Other distractors should be other plausible
+half-truths. The explanation should briefly note where the myth came from.
+
+Hard rules:
+- The stem MUST explicitly surface the popular belief ("It's commonly said
+  that...", "Many people believe...", "There's a popular myth that...").
+- ONE distractor must literally restate the popular myth — that's the trap.
+- The correct answer is the actual reality, not "no conclusive evidence".
+- **THE EXPLANATION MUST INCLUDE A SHORT CLAUSE NAMING WHERE THE MYTH CAME
+  FROM.** This is THE most-violated rule in this archetype (Anthropic missed
+  it 3 of 6 times in the 2026-05-05 production run; quality auto-rejects
+  every miss). The origin clause is one sentence fragment — Disney film,
+  19th-century pamphlet, internet hoax, telephone-game corruption of a real
+  fact, etc. **If you cannot identify a plausible origin, REGENERATE with a
+  different myth.** A myth without a traceable origin is a folk-belief, not
+  a misconception, and doesn't fit this archetype.
+
+Origin-clause examples (this is the pattern to follow in EVERY explanation):
+- "...the myth comes from a 1958 Disney film that staged the cliff scene."
+- "...the '10% of brain' myth was popularized by self-help books in the 1920s."
+- "...the spider-swallowing claim was invented by a 1993 PC magazine column
+  to demonstrate viral misinformation."
+- "...the QWERTY-slow-typists story came from a 1980s management consultant."
+
+Contrast examples (deliberately non-default-repertoire — see default-repertoire.txt for the
+default-repertoire myths to avoid: 10%-of-brain, goldfish-3s-memory, Einstein-failed-
+math, swallow-spiders, lemmings-suicide, Vikings-horned-helmets, Roman-
+vomitoriums, Napoleon-was-short, etc.):
+
+KEEP — "It's commonly said carrots improve night vision. What's actually true?"
+  correct: "Beta-carotene helps eye health but doesn't sharpen night vision"
+  distractors: "They give your eyes pigments that work in the dark (the myth)",
+    "They have no measurable effect on vision",
+    "They improve daylight color perception"
+  explanation: "The myth came from WWII British propaganda pretending RAF
+    night-fighter success was due to carrots, hiding the real radar tech."
+  why it works: the myth is THE plausible distractor; correct answer rewards
+  myth-busting; explanation HAS the origin clause naming the WWII propaganda.
+
+REJECTED (default-repertoire) — "Many people believe goldfish have a 3-second memory.
+What's actually true?"
+  why rejected: default-repertoire default-repertoire myth (see default-repertoire.txt). Pool already
+  saturated with this myth; every provider defaults to it. Use one of the
+  fresh myths from default-repertoire.txt's "ALTERNATIVES — Misconception" list.
+
+REJECTED (origin-clause missing) — same carrot question but with
+explanation: "Carrots help with eye health generally."
+  why rejected: explanation states the truth but doesn't name where the myth
+  came from, violating the hard rule. Quality stage will set qualityScore=2
+  and decision=reject. Always include the origin clause.
+
+REJECTED — "Roman vomitoriums were rooms for vomiting during feasts.
+What's true?" (when the pool already has 3+ vomitorium questions)
+  why rejected: not the misconception itself but the saturation — this exact
+  myth is default-repertoire training data; over-represented in the pool already.
