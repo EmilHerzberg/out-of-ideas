@@ -56,17 +56,17 @@ After 14 days, 24 orchestrator runs, and 1,856 generations across the **headline
 | ERNIE 4.5 300B-A47B | 13% | **$0.026** ← cheapest |
 | Doubao 2.0 Pro (BytePlus) | 20% | $0.034 |
 | Gemini 2.5 Pro (AI Studio) | 22% | $0.062 |
-| DeepSeek V4-Pro | **40%** ← top survival (tied) | $0.069 |
-| Qwen 3.6 Max | **47%** ← top survival | $0.079 |
-| MiniMax M2.7 | 13% | $0.083 |
+| DeepSeek V4-Pro | 40% | $0.069 |
+| Qwen 3.6 Max | **47%** ← best survival | $0.079 |
+| MiniMax M2.7 | **12%** ← worst survival | $0.083 |
 | GLM-5.1 (Z.ai) | 31% | $0.125 |
-| GPT-5 | **40%** ← top survival (tied) | $0.128 |
+| GPT-5 | 40% | $0.128 |
 | Kimi K2.6 | 38% | $0.299 |
-| **Claude Opus 4.7** | **17%** ← worst survival | **$0.421** ← most expensive |
+| **Claude Opus 4.7** | 17% | **$0.421** ← most expensive |
 
-*Bold cells flag noteworthy extremes (best / worst per column). The spread between them is the finding.*
+*Bold cells flag noteworthy extremes (lowest / highest per column). The spread between them is the finding.*
 
-**16× cost-per-unique-idea spread between the cheapest and most expensive frontier model**, with quality-score *spread* across the table of only 0.28 on a 5-point scale (3.97 → 4.25). The differentiator is depth-of-novelty, not quality of any individual output. **Claude Opus 4.7 collapsed hardest among the premium models in this test** — that's an Opus-specific finding from our dataset, not a universal "bigger models are worse" claim. GPT-5 sits at the same top survival rate as DeepSeek V4-Pro (40%); model size alone does not predict novelty depth.
+**16× cost-per-unique-idea spread between the cheapest and most expensive frontier model**, with quality-score *spread* across the table of only 0.28 on a 5-point scale (3.97 → 4.25). The differentiator is depth-of-novelty, not quality of any individual output. **Claude Opus 4.7 collapsed hardest among the premium models in this test** (17% survival at $0.421 per unique idea) — that's an Opus-specific finding from our dataset, not a universal "bigger models are worse" claim. GPT-5 ties DeepSeek V4-Pro at 40% survival, only 7 points behind Qwen's matrix-leading 47%; model size alone does not predict novelty depth.
 
 Confidence tiers (high ≥20 generations, medium 10–19) are documented per cell in `docs/IDEAS_MATRIX.md`. Methodology is reproducible; absolute numbers will vary ±5% per high-confidence cell on rerun.
 
