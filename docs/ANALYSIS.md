@@ -1,10 +1,10 @@
-# How Hard Is It to Generate 618 Good Quiz Questions With AI?
+# How Hard Is It to Generate Unique Quiz Questions With AI?
 
-## A multi-provider, multi-stage pipeline that turned a "5-minute prompt" into a measurable benchmark across 11 frontier LLMs
+## A multi-provider, multi-stage pipeline that turned a "5-minute prompt" into a measurable benchmark across 10 frontier LLMs
 
-> A standalone analysis from the out-of-ideas pipeline — what we built, what the numbers showed, and what the AI industry can learn from running the same prompt across every major frontier model in production.
+> A standalone analysis from the out-of-ideas pipeline — what we built, what the numbers showed, and what the AI industry can learn from running the same prompt across every major frontier model in production. Headline scope: 10 frontier LLMs, each tested with ≥10 generation attempts in every one of 10 archetype cells.
 
-**TL;DR.** I asked 11 frontier LLMs to do something that sounds trivial — write 20 fun quiz questions. They produced ~5 duplicates each. Building a pipeline that *forces* originality at scale revealed the cleanest provider-quality benchmark I've seen published: per-dollar survival rates differ by **17×** between providers, and the most expensive provider in the test (Claude Opus 4.7 at $0.39 per shipped question) collapsed harder onto training-data default repertoire than Sonnet did. The dataset below is fully reproducible.
+**TL;DR.** I asked 10 frontier LLMs to do something that sounds trivial — write 20 fun quiz questions. They produced ~5 duplicates each. Building a pipeline that *forces* originality at scale revealed the cleanest model-quality benchmark I've seen published: **$ per unique idea differs by 16× across same-quality models**, and the most expensive model in the test (Claude Opus 4.7 at $0.421 per unique idea) collapsed harder onto training-data default repertoire than the cheaper ones. The dataset below is fully reproducible.
 
 ---
 
@@ -46,128 +46,132 @@ Plus three **meta-AI loops** that turned out to matter more than the base pipeli
 2. **Seed verifier** — Claude Opus 4.7 reviews each new seed proposal with a hard ban list of universally default-repertoire trivia stems (mortgage / panic / why-popcorn-pops / why-stars-twinkle). KEEP / EDIT / REMOVE per proposal, with the rationale logged to an audit JSONL.
 3. **Rewrite-mobile** — when pool entries exceed mobile UI caps, an AI compresses them through the full pipeline. The 2026-05-05 audit found 28% of pool entries violated the new 150/60 char cap; rewrite-mobile recovered 69 and dropped 84.
 
-The pipeline rotates across **14 chat providers** (US, Chinese, Vertex Model Garden partners) with a weighted scheduler that auto-throttles expensive providers based on measured $/survivor and auto-disables (provider × model × archetype) cells that drop below 20% survival or quality<2.5 after ≥20 samples.
+The pipeline rotates across **14 configured chat providers** (US, Chinese, Vertex Model Garden partners). 10 of those produced enough data to meet the ≥10-attempts-per-archetype floor and form the headline matrix; the other 4 (or model variants thereof — Vertex's `gemini-3.1-pro-preview`, `deepseek-chat` legacy, `seed-1.6`, `gemini-2.5-flash`) are documented in `IDEAS_MATRIX.md`'s appendix. The weighted scheduler auto-throttles expensive providers based on measured $/unique-idea and auto-disables (provider × model × archetype) cells that drop below 20% survival or quality<2.5 after ≥20 samples.
 
 ---
 
 ## 3. The headline dataset
 
-7 days of orchestrator runs, May 2026. Every batch logged with cost-per-stage, quality scores, dedup breakdown, and saturation flags. All numbers below are pulled from `data/finalized-pool.jsonl` and `data/auto-runs/<ts>/run.log.jsonl` — no manual editing.
+14 days of orchestrator runs, May 2026. Every batch logged with cost-per-stage, quality scores, dedup breakdown, and saturation flags. All numbers below are pulled from `data/finalized-pool.jsonl` and `data/auto-runs/<ts>/run.log.jsonl` — no manual editing. The headline dataset is the **10-model scope**: 10 production-grade models, each with ≥10 generation attempts in every one of 10 archetype cells. Models that fell short of this floor (e.g., Vertex's `gemini-3.1-pro-preview` after API access ended mid-month) are listed in `IDEAS_MATRIX.md`'s appendix but not in the headline.
 
 | Metric | Value |
 |---|---|
-| **Total auto-runs** | 17 |
-| **Total batches** | 332 |
-| **Questions generated** | 1,476 |
-| **Questions that survived all 6 stages** | **468** |
-| **Pool size today** | **618 unique questions** (some predate the auto-runs) |
-| **Overall survival rate** | 31.7% |
-| **Total spend across all runs** | **$30.32** |
-| **Average $/shipped question** | $0.0648 |
+| **Total auto-runs** | 24 |
+| **Batches in 10-model scope** | 366 |
+| **Questions generated (10-model scope)** | **1,856** |
+| **Questions that survived all 6 stages** | **538** |
+| **Pool size in 10-model scope** | **586 unique questions** (802 total in `finalized-pool.jsonl`, 216 of which are from excluded-model rows) |
+| **Overall survival rate** | 29.0% |
+| **Total spend across the 10-model scope** | **$69.04** |
+| **Average $/unique idea** | **$0.128** |
+| **$/unique idea — cheapest to most expensive** | **$0.026 (ERNIE) → $0.421 (Claude Opus 4.7)** — 16× spread |
 | **Active seeds** | 57 (40 hand-curated + 19 AI-discovered, gatekept by Opus 4.7) |
 | **Demoted seeds** | 2 (`sci_weather_pop` 62% reject, `hist_inventions_pop` 67% reject) |
-| **Frontier LLMs in rotation** | 11 (active) of 14 registered |
+| **Frontier LLMs in headline matrix** | **10** (each ≥10 attempts × 10 archetypes = 100 cells covered) |
 
-The peak production run used `--concurrent-batches 2` (textbook 2.00× speedup, zero race conditions) and an A/B-quality pipeline (DeepSeek V4-Pro as primary + V4-Flash as alt, 241 paired decisions).
+The peak production run used `--concurrent-batches 2` (textbook 2.00× speedup, zero race conditions) and an A/B-quality pipeline (DeepSeek V4-Pro as primary + V4-Flash as alt, 241 paired decisions). After Vertex `gemini-3.1-pro-preview` access ended on May 12, Google's `gemini-2.5-pro` was wired in via AI Studio to keep Google representation in the matrix. The final run stopped with `stopReason: all_saturated` — the default-repertoire-depth signal we set out to detect.
 
 ---
 
-## 4. The provider benchmark
+## 4. The model benchmark
 
-This is the part nobody publishes because it's expensive to generate. **Same prompt, same archetypes, same quality rubric, same dedup pool — measured on identical conditions across 11 providers.**
+This is the part nobody publishes because it's expensive to generate. **Same prompt, same archetypes, same quality rubric, same dedup pool — measured on identical conditions across 10 production-grade models.** Per-cell breakdown is in `IDEAS_MATRIX.md`; below is the per-model rollup.
 
-### Per-provider results (aggregated across all 17 runs)
+### Per-model results (aggregated across the 10-model scope, 366 batches)
 
-| Provider | Batches | Generated | Survived | Survival % | Total Cost | **$/survivor** |
-|---|---:|---:|---:|---:|---:|---:|
-| **deepseek** (V4-Pro + V4-Flash) | 58 | 268 | 100 | 37.3% | $2.39 | **$0.0239** |
-| **google** (Gemini 3.1 Pro) | 50 | 262 | 89 | 34.0% | $1.96 | **$0.0220** |
-| **zai** (GLM-5.1) | 42 | 159 | 52 | 32.7% | $4.34 | $0.0834 |
-| **openrouter-qwen** (Qwen 3.6 Max) | 27 | 150 | 76 | **50.7%** | $5.64 | $0.0742 |
-| openrouter-minimax (M2.7) | 29 | 149 | 28 | 18.8% | $1.08 | $0.0385 |
-| openrouter-ernie (4.5-300b) | 26 | 137 | 21 | 15.3% | $0.34 | $0.0164 |
-| **anthropic** (Opus 4.7) | 25 | 114 | 19 | 16.7% | $7.45 | **$0.3920** |
-| **openai** (GPT-5) | 21 | 89 | 46 | **51.7%** | $4.34 | $0.0944 |
-| byteplus (Doubao Seed 2.0 Pro) | 18 | 78 | 16 | 20.5% | $0.40 | $0.0249 |
-| moonshot (Kimi K2.6) | 30 | 40 | 11 | 27.5% | $2.24 | $0.2037 |
-| openrouter-doubao (Seed 1.6) | 6 | 30 | 10 | 33.3% | $0.15 | $0.0149 |
+| Model | Generated | Surviving unique ideas | Survival % | Total Cost | **$/unique idea** |
+|---|---:|---:|---:|---:|---:|
+| **DeepSeek V4-Pro** | 227 | 91 | 40% | $6.25 | **$0.069** |
+| **GLM-5.1** (Z.ai) | 215 | 67 | 31% | $8.35 | $0.125 |
+| **GPT-5** (OpenAI) | 201 | 81 | **40%** | $10.40 | $0.128 |
+| **Gemini 2.5 Pro** (Google, AI Studio) | 198 | 44 | 22% | $2.73 | **$0.062** |
+| **Claude Opus 4.7** (Anthropic) | 192 | 32 | 17% | $13.48 | **$0.421** |
+| **Qwen 3.6 Max** (OpenRouter) | 192 | 92 | **47%** | $7.27 | $0.079 |
+| **ERNIE 4.5 300B-A47B** (OpenRouter) | 185 | 25 | 13% | $0.64 | **$0.026** |
+| **Kimi K2.6** (Moonshot) | 152 | 58 | 38% | $17.37 | $0.299 |
+| **MiniMax M2.7** (OpenRouter) | 150 | 19 | 13% | $1.57 | $0.083 |
+| **Doubao 2.0 Pro** (BytePlus, direct) | 144 | 29 | 20% | $0.98 | $0.034 |
+| **TOTAL** | **1,856** | **538** | **29%** | **$69.04** | **$0.128** |
 
 ### The five findings hiding in this table
 
-**Finding 1 — A 17× cost-per-survivor spread across frontier models.** Cheapest survivor ($0.0149 on Doubao Seed 1.6) vs most expensive ($0.3920 on Opus 4.7). Same input prompts, same downstream filtering, same target output. Both models are top-tier on benchmarks. The price-to-output gap is purely a production reality, not an academic benchmark artifact.
+**Finding 1 — A 16× cost-per-unique-idea spread across frontier models.** Cheapest unique idea ($0.026 on ERNIE 4.5) vs most expensive ($0.421 on Opus 4.7). Same input prompts, same downstream filtering, same target output. Both models are top-tier on benchmarks. The price-to-output gap is purely a production reality, not an academic benchmark artifact.
 
-**Finding 2 — Anthropic Opus 4.7 had the worst survival rate of any flagship model in this test (16.7%).** This is counterintuitive — it's the most expensive and most "premium" provider per token. The reason isn't quality (its avg qualityScore is 4.15, on par with everyone else). The reason is **default-repertoire collapse**: when asked to generate a "Why does X happen?" question, Opus 4.7 reaches for the same training-data default repertoireicals (twinkling stars, popcorn pops, sky is blue) more rigidly than smaller models do. We verified this in a controlled pinned-seed run — Opus 4.7 produced 8/8 "stars twinkle" variations from a 4-seed Science batch.
+**Finding 2 — Anthropic Opus 4.7 had the worst survival rate of any premium model in this test (17%).** This is counterintuitive — it's the most expensive and most "premium" provider per token. The reason isn't quality (its avg qualityScore is 4.17, on par with everyone else — see Matrix E in `IDEAS_MATRIX.md`). The reason is **default-repertoire collapse**: when asked to generate a "Why does X happen?" question, Opus 4.7 reaches for the same training-data default-repertoire stems (twinkling stars, popcorn pops, sky is blue) more rigidly than smaller models do. We verified this in a controlled pinned-seed run — Opus 4.7 produced 8/8 "stars twinkle" variations from a 4-seed Science batch.
 
-**Finding 3 — OpenAI GPT-5 has the highest individual survival rate (51.7%) but bills internal thinking tokens as output**, making it 10× more expensive per question than Gemini. Net effect: similar $/survivor to mid-tier providers, but with much higher per-call cost variance. Useful surgically; punishing in bulk.
+**Finding 3 — OpenAI GPT-5 ties DeepSeek for highest overall survival (40%) but at 2× the cost** ($10.40 vs $6.25). GPT-5 bills internal thinking tokens as output, making it more expensive per call than its survival rate justifies in bulk. Useful surgically (it owns `process_sequence` at 83% survival, `estimation` at 60%); punishing as a default workhorse.
 
-**Finding 4 — DeepSeek V4-Pro is the new default workhorse.** Cheaper than Google AND higher survival (37.3% vs 34.0%). The V4-Pro upgrade in early May moved it from "cheap-but-acceptable" to "cheap-and-best." We A/B-tested V4-Pro vs V4-Flash at the quality-judge stage on 241 paired decisions — they agree 64.7% overall but diverge sharply on complex archetypes (`process_sequence` only 36% agreement, `strategy` 48%). V4-Flash falls back to mechanical rule-checking; V4-Pro retains nuance.
+**Finding 4 — DeepSeek V4-Pro is the new default workhorse.** 40% survival at $0.069/unique idea, and the only model in the test that did NOT show saturation decay over time (see Matrix F in `IDEAS_MATRIX.md`). The V4-Pro upgrade in early May moved it from "cheap-but-acceptable" to "cheap-and-best." We A/B-tested V4-Pro vs V4-Flash at the quality-judge stage on 241 paired decisions — they agree 64.7% overall but diverge sharply on complex archetypes (`process_sequence` only 36% agreement, `strategy` 48%). V4-Flash falls back to mechanical rule-checking; V4-Pro retains nuance.
 
-**Finding 5 — Chinese providers performed competitively where they were tested.** Z.ai's GLM-5.1 hit the highest qualityScore (4.33) of any single batch. Qwen 3.6 Max via OpenRouter had the second-highest survival rate (50.7%). BytePlus's Doubao Seed 2.0 Pro is a quality outlier (lower at 3.88) because its writing style is essay-narrative — great for `lateral_connection` (67% survival) and `misconception` (33%), poor for strict-format `cause_effect` (6%) and `odd_one_out` (28%). **No provider is uniformly best; every provider has archetypes where it shines and archetypes where it fails.**
+**Finding 5 — Chinese-origin models performed competitively where they were tested.** Qwen 3.6 Max via OpenRouter had the highest survival rate of any model (47%) and 3 of the top archetype-cell results in the matrix (misconception 70%, odd_one_out 72%, etymology 50%). GLM-5.1 hit the highest survival on `lateral_connection` (68%). BytePlus's Doubao 2.0 Pro has the cheapest unit cost ($0.034/unique idea) but trails on survival rate (20%). **No model is uniformly best; every model has archetypes where it shines and archetypes where it fails.**
 
 ### Quality scores — surprisingly converged
 
-| Provider | Avg Fun (1-5) | Avg Quality (1-5) | Avg Learning (1-5) |
+| Model | Avg Fun (1-5) | Avg Quality (1-5) | Avg Learning (1-5) |
 |---|---:|---:|---:|
-| google (Gemini 3.1 Pro) | **3.81** | 4.13 | **3.90** |
-| anthropic (Opus 4.7) | 3.72 | 4.15 | 3.77 |
-| zai (GLM-5.1) | 3.65 | 4.15 | 3.81 |
-| deepseek | 3.50 | 4.16 | 3.69 |
-| openrouter-qwen | 3.53 | **4.19** | 3.78 |
-| openai (GPT-5) | 3.18 | 4.18 | 3.53 |
-| byteplus | 3.38 | 3.88 | 3.31 |
-| **Pool avg** | **3.58** | **4.13** | **3.74** |
+| Kimi K2.6 | 3.39 | **4.25** | 3.72 |
+| GPT-5 | 3.19 | **4.23** | 3.62 |
+| DeepSeek V4-Pro | 3.55 | 4.20 | 3.78 |
+| GLM-5.1 | **3.62** | 4.19 | 3.79 |
+| Qwen 3.6 Max | 3.49 | 4.17 | 3.75 |
+| Claude Opus 4.7 | **3.65** | 4.12 | **3.79** |
+| Doubao 2.0 Pro | 3.38 | 4.03 | 3.52 |
+| Gemini 2.5 Pro | 3.41 | 4.00 | **3.80** |
+| MiniMax M2.7 | 3.19 | 4.00 | 3.56 |
+| ERNIE 4.5 | 3.38 | 3.97 | 3.62 |
+| **Pool avg** | **3.43** | **4.13** | **3.69** |
 
-Once you reach the surviving 31.7%, **all providers produce questions of comparable craftsmanship** (qualityScore variance < 0.3 across the entire table). The differentiator is not "which model writes the best question" — it's **how many distinct ideas each model has** for a given (seed, archetype) cell before it starts paraphrasing itself.
+Once you reach the surviving 29%, **all 10 models produce questions of comparable craftsmanship** (qualityScore spread of only 0.28 across the entire table — 3.97 to 4.25 on a 1–5 scale). The differentiator is not "which model writes the best question" — it's **how many unique ideas each model has** for a given (seed, archetype) cell before it starts paraphrasing itself. Survival rate spreads 12–47% (a 35-point range) while quality stays within 0.28 points — that's the proof that the survival rate isn't a quality proxy.
 
 ---
 
-## 5. The (Provider × Archetype) heat map
+## 5. The (Model × Archetype) heat map
 
-Twelve archetypes × eleven providers = 132 cells. Some are forbidden by the compatibility matrix (etymology only works in Language; counterfactual only in Science). Of the legal cells where we have ≥6 generations, the strongest and weakest:
+Ten archetypes × ten production-grade models = 100 cells, every one with ≥10 generation attempts. (Some seed × archetype combos are forbidden by the compatibility matrix — etymology only works in Language, etc.) The full per-cell matrices are in `IDEAS_MATRIX.md`; below is the headline strongest / weakest.
 
 ### Strongest 10 cells (survival rate)
 
-| Cell | Generated | Survived | Survival | Cost |
+| Cell | Generated | Surviving unique | Survival | $/unique |
 |---|---:|---:|---:|---:|
-| openrouter-doubao × lateral_connection | 6 | 6 | **100%** | $0.03 |
-| openrouter-qwen × odd_one_out | 12 | 11 | 91.7% | $0.95 |
-| openai × odd_one_out | 10 | 9 | 90.0% | $0.78 |
-| openrouter-qwen × misconception | 24 | 17 | 70.8% | $0.69 |
-| zai × lateral_connection | 16 | 11 | 68.8% | $0.57 |
-| google × lateral_connection | 18 | 12 | 66.7% | $0.13 |
-| byteplus × lateral_connection | 6 | 4 | 66.7% | $0.03 |
-| zai × comparison | 8 | 5 | 62.5% | $0.61 |
-| openai × estimation | 30 | 18 | 60.0% | $0.98 |
-| deepseek × etymology | 12 | 7 | 58.3% | $0.24 |
+| GPT-5 × process_sequence | 12 | 10 | **83%** | $0.07 |
+| Qwen 3.6 Max × odd_one_out | 18 | 13 | **72%** | $0.09 |
+| Qwen 3.6 Max × misconception | 24 | 17 | **70%** | $0.04 |
+| GLM-5.1 × lateral_connection | 16 | 11 | 68% | $0.05 |
+| DeepSeek V4-Pro × process_sequence | 22 | 14 | 63% | $0.03 |
+| GPT-5 × estimation | 30 | 18 | 60% | $0.05 |
+| DeepSeek V4-Pro × lateral_connection | 28 | 16 | 57% | $0.02 |
+| GLM-5.1 × comparison | 20 | 10 | 50% | $0.23 |
+| GLM-5.1 × odd_one_out | 24 | 12 | 50% | $0.06 |
+| Qwen 3.6 Max × etymology | 12 | 6 | 50% | $0.08 |
 
-### Weakest 10 cells (≥6 generated)
+### Weakest 10 cells (≥10 generated — all cells in the headline matrix)
 
-| Cell | Generated | Survived | Survival |
+| Cell | Generated | Surviving unique | Survival |
 |---|---:|---:|---:|
-| openrouter-ernie × estimation | 6 | 0 | **0%** |
-| byteplus × estimation | 12 | 0 | 0% |
-| openrouter-minimax × vocab_context | 6 | 0 | 0% |
-| openrouter-ernie × comparison | 6 | 0 | 0% |
-| byteplus × process_sequence | 6 | 0 | 0% |
-| zai × vocab_context | 6 | 0 | 0% |
-| openrouter-ernie × strategy | 12 | 0 | 0% |
-| byteplus × cause_effect | 18 | 1 | 5.6% |
-| openrouter-minimax × process_sequence | 18 | 1 | 5.6% |
-| zai × estimation | 17 | 1 | 5.9% |
+| ERNIE 4.5 × strategy | 24 | 0 | **0%** |
+| ERNIE 4.5 × comparison | 12 | 0 | 0% |
+| MiniMax M2.7 × process_sequence | 12 | 0 | 0% |
+| MiniMax M2.7 × odd_one_out | 12 | 0 | 0% |
+| MiniMax M2.7 × vocab_context | 18 | 0 | 0% |
+| GLM-5.1 × vocab_context | 15 | 0 | 0% |
+| Doubao 2.0 Pro × estimation | 12 | 0 | 0% |
+| Gemini 2.5 Pro × estimation | 24 | 1 | 4% |
+| Gemini 2.5 Pro × strategy | 18 | 1 | 5% |
+| GLM-5.1 × estimation | 17 | 1 | 5% |
 
-**Pattern: narrative-style models (BytePlus, MiniMax, ERNIE) fail strict-format archetypes systematically.** Their generations are substantively fine but violate the "±20% answer length" and "compressed noun-phrase mechanism" rules we use for mobile UI. Same root cause as the V4-Pro vs V4-Flash divergence on `process_sequence`: rules-light models default to essay-form output.
+**Pattern: narrative-style models (MiniMax, ERNIE) fail strict-format archetypes systematically.** Their generations are substantively fine but violate the "±20% answer length" and "compressed noun-phrase mechanism" rules we use for mobile UI. Same root cause as the V4-Pro vs V4-Flash divergence on `process_sequence`: rules-light models default to essay-form output. **Separately, the entire `vocab_context` column is structurally weak** (pool-wide 9% survival, no model >25%) — a flag that the archetype prompt itself needs redesign, independent of model choice.
 
 ### Auto-disabled cells (provider × model × archetype) after threshold crossings
 
-After ≥20 questions assessed AND (survival < 20% OR avg qualityScore < 2.5), the orchestrator permanently blocks that cell from future rotation. Currently disabled:
+After ≥20 questions assessed AND (survival < 20% OR avg qualityScore < 2.5), the orchestrator permanently blocks that cell from future rotation. Currently disabled (cells in the headline matrix only):
 
 ```
-google | gemini-3.1-pro-preview | estimation       — 24 assessed, 8.3% surv, avgQ 2.44
-openrouter-minimax | minimax-m2.7 | comparison     — 24 assessed, 8.3% surv, avgQ 2.06
-openrouter-ernie | ernie-4.5-300b | odd_one_out    — 24 assessed, 8.3% surv, avgQ 2.58
+google | gemini-3.1-pro-preview | estimation       — 24 assessed, 8% surv, avgQ 2.44  (excluded model — appendix only)
+openrouter-minimax | minimax-m2.7 | comparison     — 24 assessed, 8% surv, avgQ 2.06
+openrouter-ernie | ernie-4.5-300b | odd_one_out    — 24 assessed, 8% surv, avgQ 2.58
 ```
 
-Three of 79 tracked cells. Notable: **the disabled `google × estimation` is not a Gemini regression** — Gemini Pro is excellent at causal questions but consistently misreads "estimation" as recall-of-a-statistic rather than Fermi-style ballpark reasoning. Provider-archetype fit is a real production constraint, not just a benchmark artifact.
+Notable: **the auto-disabled `gemini-3.1-pro × estimation` cell** is the same model that was lost to Vertex API-access changes mid-month. Its archetype mismatch with `estimation` (consistently misreading "Fermi-style ballpark" prompts as "recall-of-a-statistic") was a real production constraint, not a vendor regression — that's why model-archetype fit, not model selection, is the unit of optimization.
 
 ---
 
@@ -192,16 +196,18 @@ Saturation isn't binary — it's a slow drift from $0.025 to $0.15 per shipped q
 
 ---
 
-## 7. The (Category × Provider) cost-per-survivor pivot
+## 7. The (Category × Model) cost-per-unique-idea pivot
 
-What we measured changes who you should use for what. **There is no universally best provider; the right choice depends on which category you're mining and how saturated it already is.** Concrete recommendations distilled from the run logs:
+What we measured changes who you should use for what. **There is no universally best model; the right choice depends on which archetype/category you're mining and how saturated it already is.** Concrete recommendations distilled from the run logs:
 
-- **Bulk filler for fresh categories** → Google Gemini 3.1 Pro or DeepSeek V4-Pro ($0.025/survivor band).
-- **Hard-stuck saturated seed (3 consecutive zero-survivor batches)** → switch surgically to OpenAI GPT-5 or Anthropic Opus 4.7 to surface fresh angles. Don't keep them in rotation; they'll burn budget.
-- **`misconception` archetype** → Qwen 3.6 Max (70.8% survival, top performer).
-- **`lateral_connection` archetype** → almost any provider (66-100%); cheapest is Google.
-- **`estimation` archetype** → OpenAI GPT-5 only; Google is auto-disabled here, everyone else <30%.
-- **`odd_one_out` archetype** → GPT-5 or Qwen (90%+).
+- **Bulk filler for fresh categories** → DeepSeek V4-Pro or Gemini 2.5 Pro ($0.06–0.07/unique idea band, broad seed coverage).
+- **Hard-stuck saturated seed (3 consecutive zero-survivor batches)** → switch surgically to GPT-5 or Qwen 3.6 Max to surface fresh angles. GPT-5 burns budget at scale but is the breakthrough tool. Avoid Claude Opus 4.7 — it has the worst saturation decay among premium models.
+- **`misconception` archetype** → Qwen 3.6 Max (70% survival, $0.04/unique).
+- **`lateral_connection` archetype** → GLM-5.1 (68%, $0.05) or DeepSeek V4-Pro (57%, $0.02).
+- **`process_sequence` archetype** → GPT-5 (83%, $0.07) — by far the top performer.
+- **`estimation` archetype** → GPT-5 only (60%, $0.05). Gemini 2.5 Pro is structurally weak here (4%); Doubao auto-disables (0%).
+- **`odd_one_out` archetype** → Qwen 3.6 Max (72%, $0.09) or GLM-5.1 (50%, $0.06).
+- **`vocab_context` archetype** → none of the 10 models clears 25%. Redesign the archetype prompt before scaling.
 
 This is the operational outcome of the benchmark — not "which model is best" but **which (model, archetype, category) cells are worth running**.
 
@@ -259,17 +265,17 @@ These are the lessons we'd carry into any future LLM pipeline, in rough order of
 
 ## 10. What we'd publish about LLM benchmarking
 
-We started this project to build a quiz game. We ended up with **the cleanest provider quality benchmark we could find in production conditions**, because the quiz-generation task happens to require:
+We started this project to build a quiz game. We ended up with **the cleanest model-quality benchmark we could find in production conditions**, because the quiz-generation task happens to require:
 
 - **Open-ended generation** (no single correct answer to grade against)
 - **Hard structural constraints** (4 options, ±20% length, defeatable distractors)
 - **Subjective quality** (fun, learning value, accessibility tier)
 - **Diversity at scale** (forced novelty across thousands of outputs)
-- **Cross-provider portability** (the prompt must work on Opus, GPT-5, Gemini, DeepSeek, Qwen, GLM, Kimi, Doubao, MiniMax, ERNIE in parallel)
+- **Cross-model portability** (the prompt must work on Opus, GPT-5, Gemini 2.5 Pro, DeepSeek V4-Pro, Qwen, GLM, Kimi, Doubao, MiniMax, ERNIE in parallel — the exact 10 models in the headline matrix)
 
-These are precisely the conditions academic benchmarks (MMLU, HumanEval, GPQA) miss. Standard benchmarks are pass/fail on a fixed answer key; production quality is a multi-dimensional yield curve with $-per-survivor as the y-axis.
+These are precisely the conditions academic benchmarks (MMLU, HumanEval, GPQA) miss. Standard benchmarks are pass/fail on a fixed answer key; production quality is a multi-dimensional yield curve with **$-per-unique-idea** as the y-axis.
 
-If you're choosing a provider for any production task involving creative generation + structural constraints + dedup, the **survival-rate × $/survivor matrix is the metric that matters**, not benchmark scores. The two are surprisingly poorly correlated.
+If you're choosing a model for any production task involving creative generation + structural constraints + dedup, the **survival-rate × $/unique-idea matrix is the metric that matters**, not benchmark scores. The two are surprisingly poorly correlated.
 
 ---
 
@@ -293,4 +299,4 @@ To avoid misleading anyone reading these numbers:
 
 ---
 
-*Project: out-of-ideas · Authors: Emil Herzberg and Anton Herzberg · License: Apache-2.0 · Analysis date: 2026-05-12*
+*Project: out-of-ideas · Authors: Emil Herzberg and Anton Herzberg · License: Apache-2.0 · Analysis date: 2026-05-13*

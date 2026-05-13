@@ -215,7 +215,7 @@ for (const r of runSummaries) {
   console.log(tableRow(r.runId.slice(0, 19), r.batches, r.generated, r.survived, pct(r.survRate), $(r.cost), poolDelta, r.stopReason || '?'));
 }
 
-console.log('\n=== AGGREGATED PROVIDER STATS (across all 17 runs) ===');
+console.log(`\n=== AGGREGATED PROVIDER STATS (across all ${totalRuns} runs) ===`);
 console.log('provider\tbatches\tgenerated\tsurvived\tsurv%\ttotalCost\t$/survivor');
 for (const [p, s] of Object.entries(providerRunStats).sort((a, b) => b[1].gen - a[1].gen)) {
   const dollarPerSurv = s.surv ? s.cost / s.surv : Infinity;

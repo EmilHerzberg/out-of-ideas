@@ -4,11 +4,11 @@
 >
 > A multi-provider LLM pipeline that measures *default-repertoire depth* — how many distinct ideas each frontier model has on a given conceptual cell before it starts paraphrasing itself.
 >
-> 11 frontier LLMs · 1,476 generations · $30 of API spend · 618 unique production-grade questions · one cleanly reproducible benchmark.
+> **10 frontier LLMs · 1,856 generations · $69 of API spend · 538 unique production-grade ideas at $0.128 each** · every model ≥10 generation attempts in every one of 10 archetype cells · one cleanly reproducible benchmark.
 
 ## What this is
 
-A 6-stage local pipeline (Node + TypeScript) that generates, quality-rates, fact-checks, embeds, and de-duplicates quiz questions across 11 frontier LLMs. The architecture generalises to any creative-generation task with structural constraints and a deduplication requirement (synthetic data, content pipelines, training-data augmentation, simulation prompts).
+A 6-stage local pipeline (Node + TypeScript) that generates, quality-rates, fact-checks, embeds, and de-duplicates quiz questions across 10 production-grade frontier LLMs (with 4 more in the configured rotation that did not reach the ≥10-attempts floor — listed in the appendix of `docs/IDEAS_MATRIX.md`). The architecture generalises to any creative-generation task with structural constraints and a deduplication requirement (synthetic data, content pipelines, training-data augmentation, simulation prompts).
 
 > A sample of **100 production-grade questions** is included in [`samples/`](./samples/sample-questions.jsonl) — diverse across categories and archetypes, embeddings stripped for readability.
 
@@ -38,17 +38,22 @@ The single most actionable finding:
 
 ## Headline numbers
 
-After 7 days, 17 orchestrator runs, and 1,476 generations across 11 frontier LLMs:
+After 14 days, 24 orchestrator runs, and 1,856 generations across the 10-model headline scope (each with ≥10 attempts in every archetype cell):
 
-| Provider | Survival % | $ / shipped question |
+| Model | Survival % | $ / unique idea |
 |---|---:|---:|
-| Google Gemini 3.1 Pro | 34.0% | $0.022 |
-| DeepSeek V4-Pro | 37.3% | $0.024 |
-| Qwen 3.6 Max | 50.7% | $0.074 |
-| OpenAI GPT-5 | 51.7% | $0.094 |
-| **Claude Opus 4.7** | **16.7%** | **$0.392** |
+| ERNIE 4.5 300B-A47B | 13% | **$0.026** |
+| Doubao 2.0 Pro (BytePlus) | 20% | $0.034 |
+| Gemini 2.5 Pro (AI Studio) | 22% | $0.062 |
+| DeepSeek V4-Pro | **40%** | $0.069 |
+| Qwen 3.6 Max | **47%** | $0.079 |
+| MiniMax M2.7 | 13% | $0.083 |
+| GLM-5.1 (Z.ai) | 31% | $0.125 |
+| GPT-5 | **40%** | $0.128 |
+| Kimi K2.6 | 38% | $0.299 |
+| **Claude Opus 4.7** | **17%** | **$0.421** |
 
-**17× cost-per-shipped-output spread between the cheapest and most expensive frontier model.** Bigger models collapse harder onto training-data default repertoire.
+**16× cost-per-unique-idea spread between the cheapest and most expensive frontier model**, with quality-score variance across the table of only 0.28 on a 5-point scale (3.97 → 4.25). The differentiator is depth-of-novelty, not quality of any individual output. Bigger models can collapse harder onto training-data default repertoire — Opus 4.7 is the headline case in this dataset.
 
 ## Provider matrix
 
@@ -123,11 +128,11 @@ compute-ideas-matrix.mjs          # the default-repertoire-depth matrix computat
 
 The `data/` directory is gitignored. It contains:
 
-- `data/finalized-pool.jsonl` — 618 surviving questions + 768-d embeddings (~11 MB)
+- `data/finalized-pool.jsonl` — 802 surviving questions + 768-d embeddings (~9 MB; 586 in the 10-model headline scope, the rest from excluded model variants — see `docs/IDEAS_MATRIX.md` appendix)
 - `data/auto-runs/<ts>/` — full logs of every orchestrator run (~25 MB total)
 - `data/_analysis_raw.json` — output of `analyze-all.mjs`
 
-The dataset is not shipped publicly. The pipeline is the artifact; the data is what you generate when you run it. If you want to verify the benchmark numbers in `docs/ANALYSIS.md`, run the pipeline yourself for ~$30 of API spend.
+The dataset is not shipped publicly. The pipeline is the artifact; the data is what you generate when you run it. If you want to verify the benchmark numbers in `docs/ANALYSIS.md`, run the pipeline yourself for ~$70 of API spend.
 
 The analysis docs (`docs/ANALYSIS.md`, `docs/IDEAS_MATRIX.md`, `docs/DISTINCT_IDEAS_THESIS.md`) report the *results* of analysis; the raw data files are kept private.
 

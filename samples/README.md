@@ -72,7 +72,7 @@ grep '"generationProvider":"anthropic"' sample-questions.jsonl | jq
 
 ## What this sample is NOT
 
-- **Not the full pool.** The full 618-question pool plus all 17 orchestrator run logs stay private. This sample is a curated cross-section for demonstration.
+- **Not the full pool.** The full pool (802 questions across all 14 configured models; 586 of those in the 10-model headline benchmark scope) plus all 24 orchestrator run logs stay private. This sample is a frozen curated cross-section from when the pool was 618 — its provider distribution still reflects pre-Vertex-block state (Gemini 3.1 Pro contributes; Gemini 2.5 Pro had not been wired in yet).
 - **Not a benchmark dataset.** For benchmark claims see `docs/IDEAS_MATRIX.md` and `docs/ANALYSIS.md`. The numbers there are computed over the full pool + run logs, not this 100-question subset.
 - **Not bias-corrected.** The provider distribution reflects which providers contributed the most high-quality survivors to the pool — not equal representation. DeepSeek V4-Pro and Google Gemini 3.1 Pro dominate because they're the cheapest providers with the highest survival rates.
 
