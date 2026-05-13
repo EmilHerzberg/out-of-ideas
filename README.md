@@ -36,9 +36,16 @@ The single most actionable finding:
 
 > **The differentiator between frontier LLMs in production is not "which model writes the best output." It's how many distinct ideas each model has for a given cell before it starts paraphrasing itself.**
 
-→ Full thesis: [docs/DISTINCT_IDEAS_THESIS.md](./docs/DISTINCT_IDEAS_THESIS.md)
-→ The reproducible matrices: [docs/IDEAS_MATRIX.md](./docs/IDEAS_MATRIX.md)
-→ Full benchmark report: [docs/ANALYSIS.md](./docs/ANALYSIS.md)
+## Where to read what
+
+| Doc | What's in it | When to open it |
+|---|---|---|
+| **[docs/IDEAS_MATRIX.md](./docs/IDEAS_MATRIX.md)** | All six matrices (generation attempts, survival rate, $/unique idea, combined, quality per cell, saturation decay) + methodology + confidence tiers + excluded-model appendix | You want the full numerical picture or a specific (model × archetype) cell |
+| **[docs/DISTINCT_IDEAS_THESIS.md](./docs/DISTINCT_IDEAS_THESIS.md)** | The conceptual argument: what default-repertoire depth is, why it matters, what we measured, the four findings that ground the thesis | You want to understand *why* this is the right metric, not just the numbers |
+| **[docs/ANALYSIS.md](./docs/ANALYSIS.md)** | Full benchmark report — five findings hiding in the per-model table, (category × archetype) saturation curves, architectural decisions, run-by-run appendix | You want the long-form report with operational recommendations |
+| **[docs/PROMPTS.md](./docs/PROMPTS.md)** | All 17 AI prompts (generator, 12 archetype variants, quality, verifier, seed-evolver, seed-verifier) with reasoning per prompt | You want to copy a prompt, audit our exact wording, or fork the pipeline |
+
+If you're going to skim only one thing past this README, make it the matrix in `IDEAS_MATRIX.md` — it's the closest thing to a quantitative TL;DR.
 
 ## Headline numbers
 
@@ -62,6 +69,70 @@ After 14 days, 24 orchestrator runs, and 1,856 generations across the **headline
 **16× cost-per-unique-idea spread between the cheapest and most expensive frontier model**, with quality-score *spread* across the table of only 0.28 on a 5-point scale (3.97 → 4.25). The differentiator is depth-of-novelty, not quality of any individual output. **Claude Opus 4.7 collapsed hardest among the premium models in this test** — that's an Opus-specific finding from our dataset, not a universal "bigger models are worse" claim. GPT-5 sits at the same top survival rate as DeepSeek V4-Pro (40%); model size alone does not predict novelty depth.
 
 Confidence tiers (high ≥20 generations, medium 10–19) are documented per cell in `docs/IDEAS_MATRIX.md`. Methodology is reproducible; absolute numbers will vary ±5% per high-confidence cell on rerun.
+
+## The three matrices that carry the story
+
+The full six-matrix breakdown (generation attempts, combined view, quality per cell, methodology, confidence tiers, excluded-model appendix) lives in `docs/IDEAS_MATRIX.md`. Three of them carry the headline story and are inlined here so you don't have to click through.
+
+### 1 — Survival rate per (model × archetype)
+
+How many distinct ideas does each model have for each question structure before paraphrase collapse kicks in?
+
+| Model | cause_eff | comparison | process_seq | misconception | etymology | estimation | lateral_conn | odd_one_out | vocab_ctx | strategy | **Ø** |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| **Claude Opus 4.7** | 8% | 8% | 8% | 33% | 22% | 50% | 16% | 22% | 8% | 8% | **17%** |
+| **GPT-5** | 41% | 21% | **83%** | 16% | 38% | **60%** | 38% | 50% | 16% | 25% | **40%** |
+| **Gemini 2.5 Pro** | 38% | 14% | 38% | 16% | 33% | 4% | 33% | 33% | 11% | 5% | **22%** |
+| **DeepSeek V4-Pro** | 22% | 46% | **63%** | 41% | 41% | 40% | **57%** | 25% | 12% | 45% | **40%** |
+| **GLM-5.1** | 43% | 50% | 23% | 24% | 16% | 5% | **68%** | 50% | 0% | 25% | **31%** |
+| **Kimi K2.6** | 45% | 26% | 38% | 46% | 38% | 45% | 42% | 43% | 9% | 38% | **38%** |
+| **Doubao 2.0 Pro** | 5% | 33% | 8% | 16% | 33% | 0% | 33% | 27% | 8% | 33% | **20%** |
+| **Qwen 3.6 Max** | 38% | 31% | 41% | **70%** | 50% | 43% | 48% | **72%** | 25% | 44% | **47%** |
+| **ERNIE 4.5** | 8% | 0% | 16% | 33% | 16% | 8% | 29% | 13% | 8% | 0% | **13%** |
+| **MiniMax M2.7** | 16% | 13% | 0% | 8% | 33% | 27% | 16% | 0% | 0% | 8% | **12%** |
+| **Column Ø** | 25% | 23% | 32% | 31% | 32% | 31% | 40% | 34% | **9%** | 23% | **28%** |
+
+Cell-level spread is huge — `cause_effect` ranges 5% (Doubao) to 45% (Kimi), `odd_one_out` ranges 0% (MiniMax) to 72% (Qwen), `process_sequence` ranges 0% (MiniMax) to 83% (GPT-5). No model is uniformly best. The `vocab_context` column is matrix-wide weak (Ø 9%, no model >25%) — flag for archetype-prompt redesign.
+
+### 2 — $ per unique idea per (model × archetype)
+
+The production-economics view. Cost per attempt is a vendor-marketing number; cost per *unique idea that survives downstream filtering* is the real production cost — and it spreads 16× across models that all pass the same quality bar.
+
+| Model | cause_eff | comparison | process_seq | misconception | etymology | estimation | lateral_conn | odd_one_out | vocab_ctx | strategy | **Ø** |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| **Claude Opus 4.7** | $0.63 | $0.89 | $0.67 | $0.26 | $0.38 | $0.15 | $0.56 | $0.28 | $0.85 | $0.90 | **$0.421** |
+| **GPT-5** | $0.09 | $0.58 | $0.07 | $0.22 | $0.10 | $0.05 | $0.12 | $0.11 | $0.27 | $0.14 | **$0.128** |
+| **Gemini 2.5 Pro** | $0.02 | $0.04 | $0.04 | $0.04 | $0.09 | $0.40 | $0.08 | $0.02 | $0.07 | $0.24 | **$0.062** |
+| **DeepSeek V4-Pro** | $0.07 | $0.03 | $0.03 | $0.01 | $0.04 | $0.04 | $0.02 | $0.05 | $1.06 | $0.16 | **$0.069** |
+| **GLM-5.1** | $0.07 | $0.23 | $0.14 | $0.08 | $0.32 | $0.24 | $0.05 | $0.06 | ∞ | $0.22 | **$0.125** |
+| **Kimi K2.6** | $0.18 | $0.82 | $0.09 | $0.06 | $0.25 | $0.18 | $0.13 | $0.81 | $0.84 | $0.22 | **$0.299** |
+| **Doubao 2.0 Pro** | $0.10 | $0.03 | $0.08 | $0.05 | $0.03 | ∞ | $0.02 | $0.02 | $0.12 | $0.01 | **$0.034** |
+| **Qwen 3.6 Max** | $0.09 | $0.14 | $0.09 | $0.04 | $0.08 | $0.07 | $0.06 | $0.09 | $0.12 | $0.11 | **$0.079** |
+| **ERNIE 4.5** | $0.04 | ∞ | $0.01 | $0.01 | $0.03 | $0.04 | $0.01 | $0.02 | $0.14 | ∞ | **$0.026** |
+| **MiniMax M2.7** | $0.06 | $0.05 | ∞ | $0.07 | $0.02 | $0.06 | $0.07 | ∞ | ∞ | $0.09 | **$0.083** |
+
+`∞` = cell produced 0 unique ideas → infinite cost-per-unique. The cell simply does not yield shippable output at any budget for that (model × archetype) pairing. Even within a single model, the spread is large: Opus produces unique `estimation` ideas at $0.15 and unique `comparison` ideas at $0.89 — a 6× internal spread.
+
+### 3 — Saturation decay over time (do models actually "run out of ideas"?)
+
+The static survival rate above averages across every batch. The diagnostic question is: **does each model's survival rate drop as it keeps running on the same archetype-mix?** Each model's batches sorted chronologically, bucketed into first 5 / middle 5 / last 5.
+
+| Model | 1st 5 batches | mid 5 batches | last 5 batches | Δ first→last |
+|---|---|---|---|---:|
+| **Qwen 3.6 Max** | **73%** (22/30) | 60% (18/30) | **33%** (10/30) | **−40 pp** |
+| **GPT-5** | **50%** (14/28) | 42% (11/26) | **13%** (4/29) | **−37 pp** |
+| **GLM-5.1** | 39% (9/23) | 26% (4/15) | 13% (3/23) | **−26 pp** |
+| **Doubao 2.0 Pro** | 36% (11/30) | 16% (5/30) | 10% (3/30) | **−26 pp** |
+| **ERNIE 4.5** | 30% (9/30) | 10% (3/30) | 6% (2/30) | **−24 pp** |
+| **Claude Opus 4.7** | 16% (5/30) | 13% (4/30) | 6% (2/30) | −10 pp |
+| **DeepSeek V4-Pro** | 25% (7/27) | 53% (14/26) | 32% (8/25) | **+7 pp** |
+| **MiniMax M2.7** | 10% (3/30) | 13% (4/30) | 4% (1/24) | −6 pp |
+| Gemini 2.5 Pro † | 0% (0/15) | 40% (12/30) | 6% (2/30) | n/a (cold start) |
+| Kimi K2.6 † | 0% (0/8) | 45% (5/11) | 37% (11/29) | n/a (model-id fix mid-experiment) |
+
+**Seven of ten models show clear default-repertoire-collapse decay over time.** Qwen and GPT-5 fall hardest (−40 pp, −37 pp). Opus only drops −10 pp because it had nowhere left to fall — its default repertoire collapsed before the experiment began. **DeepSeek V4-Pro is the only model that did NOT decay** (+7 pp) — likely because the seed-evolver kept feeding it freshly-discovered seeds where its training corpus has unmined depth.
+
+The full six matrices (including generation attempts, the combined surv/gen+$/uniq view, and per-cell quality scores that prove "unique" ≠ "low quality") plus the global saturation curve are in **[docs/IDEAS_MATRIX.md](./docs/IDEAS_MATRIX.md)**.
 
 ### A note on Claude Opus 4.7 as the seed-quality gatekeeper
 
