@@ -10,7 +10,7 @@ A two-person research project by Emil Herzberg and Anton Herzberg, May 2026.
 
 ## What this is
 
-A 5-stage local pipeline (Node + TypeScript) that generates, quality-rates, fact-checks, embeds, and de-duplicates quiz questions across 10 production-grade frontier LLMs. Four more providers were configured but did not reach the ≥10-attempts floor — listed in the appendix of `docs/IDEAS_MATRIX.md`. The architecture generalises to any creative-generation task with structural constraints and a deduplication requirement (synthetic data, content pipelines, training-data augmentation, simulation prompts).
+A 5-stage local pipeline (Node + TypeScript) that generates, quality-rates, fact-checks, embeds, and de-duplicates quiz questions across 10 production-grade frontier LLMs. Four more providers were configured but did not reach the ≥10-attempts floor — listed in the appendix of `docs/IDEAS_MATRIX.md`. The architecture generalizes to any creative-generation task with structural constraints and a deduplication requirement (synthetic data, content pipelines, training-data augmentation, simulation prompts).
 
 > A sample of **100 production-grade questions** is included in [`samples/`](./samples/sample-questions.jsonl) — diverse across categories and archetypes, embeddings stripped for readability.
 
