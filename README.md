@@ -288,4 +288,8 @@ If you use the software, the dataset, or the methodology in academic or industry
 
 ## Contact
 
-Issues + PRs welcome. For replication help, collaboration, consulting, or hiring: open an issue, reach out via [LinkedIn](https://linkedin.com/in/emilherzberg), or email **emil.herzberg.eh@gmail.com**.
+Issues + PRs welcome. For replication help, collaboration, consulting, or hiring: open an issue, reach out via
+Emil Herzberg:
+[LinkedIn](https://linkedin.com/in/emilherzberg), or email **emil.herzberg.eh@gmail.com**.
+Anton Herzberg:
+**herzberg097@gmail.com**
